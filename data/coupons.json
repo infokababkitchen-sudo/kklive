@@ -1,0 +1,142 @@
+{
+  "coupons": [
+    {
+      "id": "kkwelcome",
+      "code": "KKWELCOME",
+      "title": "Welcome Discount",
+      "description": "Get Rs.30 off on your first order above Rs.299",
+      "type": "flat",
+      "value": 30,
+      "minOrderValue": 299,
+      "validTill": "2026-12-31",
+      "isActive": true,
+      "terms": ["Valid for new customers", "Min order Rs.299"]
+    },
+    {
+      "id": "freedel299",
+      "code": "FREEDEL",
+      "title": "Free Delivery",
+      "description": "Free delivery on orders above Rs.299",
+      "type": "free_delivery",
+      "value": 0,
+      "minOrderValue": 299,
+      "validTill": "2026-12-31",
+      "isActive": true,
+      "terms": ["Valid on orders Rs.299+", "Within 5km radius"]
+    },
+    {
+      "id": "flat50",
+      "code": "KKSAVE50",
+      "title": "Rs.50 Off",
+      "description": "Flat Rs.50 off on orders above Rs.499",
+      "type": "flat",
+      "value": 50,
+      "minOrderValue": 499,
+      "validTill": "2026-12-31",
+      "isActive": true,
+      "terms": ["Valid on orders Rs.499+", "Cannot be combined"]
+    },
+    {
+      "id": "freecake",
+      "code": "SWEETTREAT",
+      "title": "Free Chocolava Cake",
+      "description": "Order Rs.499+ and get FREE Chocolava Cake",
+      "type": "free_item",
+      "value": 0,
+      "freeItem": {
+        "name": "Chocolava Cake",
+        "price": 79,
+        "image": "/images/placeholder-dish.jpg"
+      },
+      "minOrderValue": 499,
+      "validTill": "2026-12-31",
+      "isActive": true,
+      "terms": ["Valid on orders Rs.499+", "While stocks last"]
+    },
+    {
+      "id": "kkspecial",
+      "code": "KKSPECIAL",
+      "title": "10% Off",
+      "description": "Get 10% off on orders above Rs.499",
+      "type": "percentage",
+      "value": 10,
+      "maxDiscount": 75,
+      "minOrderValue": 499,
+      "validTill": "2026-12-31",
+      "isActive": true,
+      "terms": ["Max discount Rs.75", "Min order Rs.499"]
+    },
+    {
+      "id": "flat100",
+      "code": "KKSAVE100",
+      "title": "Rs.100 Off",
+      "description": "Flat Rs.100 off on orders above Rs.799",
+      "type": "flat",
+      "value": 100,
+      "minOrderValue": 799,
+      "validTill": "2026-12-31",
+      "isActive": true,
+      "terms": ["Valid on orders Rs.799+", "Cannot be combined"]
+    },
+    {
+      "id": "grandopening",
+      "code": "KKGRAND",
+      "title": "Grand Opening 15% Off",
+      "description": "Grand opening special - 15% off on Rs.799+",
+      "type": "percentage",
+      "value": 15,
+      "maxDiscount": 150,
+      "minOrderValue": 799,
+      "validTill": "2026-06-30",
+      "isActive": true,
+      "terms": ["Limited time offer", "Max discount Rs.150"]
+    },
+    {
+      "id": "party999",
+      "code": "KKPARTY",
+      "title": "Rs.150 Off + Free Raita",
+      "description": "Rs.150 off + Free Raita on orders Rs.999+",
+      "type": "flat",
+      "value": 150,
+      "freeItem": {
+        "name": "Raita",
+        "price": 59,
+        "image": "/images/placeholder-dish.jpg"
+      },
+      "minOrderValue": 999,
+      "validTill": "2026-12-31",
+      "isActive": true,
+      "terms": ["Valid on orders Rs.999+", "Includes Free Raita"]
+    },
+    {
+      "id": "megasaver",
+      "code": "KKMEGA",
+      "title": "Rs.200 Off",
+      "description": "Mega savings - Rs.200 off on orders Rs.1499+",
+      "type": "flat",
+      "value": 200,
+      "minOrderValue": 1499,
+      "validTill": "2026-12-31",
+      "isActive": true,
+      "terms": ["Valid on orders Rs.1499+", "Best for group orders"]
+    },
+    {
+      "id": "familyfeast",
+      "code": "KKFAMILY",
+      "title": "20% Off Family Feast",
+      "description": "Family feast - 20% off on orders Rs.1999+",
+      "type": "percentage",
+      "value": 20,
+      "maxDiscount": 400,
+      "freeItem": {
+        "name": "Cold Drink 750ml",
+        "price": 60,
+        "image": "/images/placeholder-dish.jpg"
+      },
+      "minOrderValue": 1999,
+      "validTill": "2026-12-31",
+      "isActive": true,
+      "terms": ["Max discount Rs.400", "Includes Free Cold Drink 750ml", "Perfect for family gatherings"]
+    }
+  ]
+}
