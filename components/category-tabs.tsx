@@ -113,14 +113,14 @@ export function CategoryTabs({
           />
           
           {/* Sheet Content */}
-          <div className="absolute bottom-0 left-0 right-0 bg-background rounded-t-2xl max-h-[80vh] overflow-hidden animate-in slide-in-from-bottom duration-300">
+          <div className="absolute bottom-0 left-0 right-0 bg-background rounded-t-2xl max-h-[85vh] overflow-hidden animate-in slide-in-from-bottom duration-300 flex flex-col">
             {/* Handle */}
-            <div className="flex justify-center pt-3 pb-1">
+            <div className="flex justify-center pt-3 pb-1 shrink-0">
               <div className="w-10 h-1 bg-muted-foreground/30 rounded-full" />
             </div>
             
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
               <h2 className="text-lg font-bold text-foreground">Select Category</h2>
               <button 
                 onClick={() => setShowCategorySheet(false)}
@@ -130,8 +130,8 @@ export function CategoryTabs({
               </button>
             </div>
             
-            {/* Categories Grid */}
-            <div className="p-4 overflow-y-auto max-h-[calc(80vh-80px)]">
+            {/* Categories Grid - Scrollable */}
+            <div className="p-4 overflow-y-auto flex-1">
               <div className="grid grid-cols-2 gap-2">
                 {categories.map(category => {
                   const isActive = activeCategory === category.id

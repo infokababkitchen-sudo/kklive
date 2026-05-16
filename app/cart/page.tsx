@@ -504,7 +504,7 @@ export default function CartPage() {
 
             <div className="text-center space-y-2">
               <p className="text-sm text-muted-foreground">Or pay to UPI ID:</p>
-              <p className="font-mono text-sm bg-muted px-3 py-2 rounded-lg">kababkitchen@upi</p>
+              <p className="font-mono text-sm bg-muted px-3 py-2 rounded-lg">kababkitchen@oksbi</p>
             </div>
 
             <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">

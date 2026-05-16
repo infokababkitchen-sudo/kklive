@@ -1379,6 +1379,22 @@
       "isPopular": true,
       "isNew": false,
       "image": "/images/butter-roti.jpg"
+    },
+    {
+      "id": 88,
+      "name": "Mutton Momo",
+      "category": "momos",
+      "isVeg": false,
+      "halfPrice": 160,
+      "fullPrice": 240,
+      "description": "Tender mutton filled steamed momos with aromatic spices",
+      "calories": 380,
+      "spiceLevel": "medium",
+      "rating": 4.7,
+      "reviews": 156,
+      "isPopular": true,
+      "isNew": true,
+      "image": "/images/mutton-momo.jpg"
     }
   ],
   "todaysSpecials": [
