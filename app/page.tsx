@@ -1,20 +1,37 @@
 "use client"
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Header } from '@/components/header'
 import { BottomNav } from '@/components/bottom-nav'
 import { CategoryTabs } from '@/components/category-tabs'
 import { FilterChips, FilterType } from '@/components/filter-chips'
 import { DishCard } from '@/components/dish-card'
-import { PromoBanner } from '@/components/promo-banner'
+import { SurpriseMePopup } from '@/components/surprise-me-popup'
+import { FeaturedCarousel } from '@/components/featured-carousel'
+import { useCart } from '@/context/cart-context'
 import menuData from '@/data/menu.json'
 import { MenuData, Dish } from '@/types/menu'
+import Image from 'next/image'
 
 const data = menuData as MenuData
 
 export default function MenuPage() {
   const [activeCategory, setActiveCategory] = useState('all')
   const [activeFilters, setActiveFilters] = useState<FilterType[]>([])
+  const [showSurpriseMe, setShowSurpriseMe] = useState(false)
+  const [hasShownSurpriseMe, setHasShownSurpriseMe] = useState(false)
+  const { items } = useCart()
+
+  // Show surprise me popup after 3 seconds on first load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!hasShownSurpriseMe) {
+        setShowSurpriseMe(true)
+        setHasShownSurpriseMe(true)
+      }
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [hasShownSurpriseMe])
 
   const handleFilterToggle = (filter: FilterType) => {
     setActiveFilters(prev => {
@@ -74,11 +91,38 @@ export default function MenuPage() {
   const popularDishes = filteredDishes.filter(d => d.isPopular)
   const regularDishes = filteredDishes.filter(d => !d.isPopular)
 
-  const activePromo = data.promoCodes[0]
-
   return (
     <div className="min-h-screen bg-background pb-20">
       <Header />
+      
+      {/* Selected Dishes Preview Above Bottom Nav */}
+      {items.length > 0 && (
+        <div className="fixed bottom-20 left-0 right-0 z-40 bg-background border-t border-border">
+          <div className="flex gap-2 px-4 py-2 overflow-x-auto scrollbar-hide">
+            {items.slice(0, 5).map((item, index) => (
+              <div key={`${item.id}-${item.size}-${index}`} className="relative shrink-0">
+                <div className="w-14 h-14 rounded-lg overflow-hidden border-2 border-primary">
+                  <Image
+                    src={item.image}
+                    alt={item.name}
+                    width={56}
+                    height={56}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <span className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-primary-foreground text-xs font-bold rounded-full flex items-center justify-center">
+                  {item.quantity}
+                </span>
+              </div>
+            ))}
+            {items.length > 5 && (
+              <div className="w-14 h-14 rounded-lg bg-secondary border-2 border-secondary flex items-center justify-center text-xs font-bold text-secondary-foreground shrink-0">
+                +{items.length - 5}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       
       <CategoryTabs
         categories={data.categories}
@@ -87,20 +131,13 @@ export default function MenuPage() {
         dishCounts={dishCounts}
       />
 
-      <PromoBanner
-        code={activePromo.code}
-        description={activePromo.description}
-        validTill={new Date(activePromo.validTill).toLocaleDateString('en-IN', { 
-          day: 'numeric', 
-          month: 'long', 
-          year: 'numeric' 
-        })}
-      />
-
       <FilterChips
         activeFilters={activeFilters}
         onFilterToggle={handleFilterToggle}
       />
+
+      {/* Featured Carousel - Replaces first 50% promo */}
+      <FeaturedCarousel />
 
       {/* Popular Items Section */}
       {popularDishes.length > 0 && !activeFilters.includes('new') && (
@@ -140,6 +177,7 @@ export default function MenuPage() {
       </section>
 
       <BottomNav />
+      {showSurpriseMe && <SurpriseMePopup onClose={() => setShowSurpriseMe(false)} />}
     </div>
   )
 }
