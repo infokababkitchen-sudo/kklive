@@ -1,14 +1,14 @@
 "use client"
 
 import { useState } from 'react'
-import { X, Sparkles, ChevronRight } from 'lucide-react'
+import { X, Sparkles, ChevronRight, Gift, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import menuData from '@/data/menu.json'
 import { MenuData, Dish } from '@/types/menu'
 import { useCart } from '@/context/cart-context'
 import Image from 'next/image'
 
-const data = menuData as MenuData
+const data = menuData as MenuData & { coupons: any[] }
 
 interface SurpriseMePopupProps {
   onClose: () => void
@@ -34,8 +34,14 @@ export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
   const { addItem } = useCart()
   const [step, setStep] = useState(1)
   const [priceRange, setPriceRange] = useState(1000)
+  const [selectedCoupon, setSelectedCoupon] = useState<any>(null)
   const [selectedCuisine, setSelectedCuisine] = useState<CuisineType | null>(null)
   const [suggestedDishes, setSuggestedDishes] = useState<Dish[]>([])
+
+  // Get available coupons based on price range
+  const getAvailableCoupons = () => {
+    return data.coupons.filter(coupon => coupon.minOrderValue <= priceRange)
+  }
 
   const getDishesForCuisine = (cuisine: CuisineType, maxPrice: number): Dish[] => {
     const categoryIds = CUISINE_MAP[cuisine]
@@ -59,7 +65,7 @@ export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
     
     if (selected.length > 0) {
       setSuggestedDishes(selected)
-      setStep(3)
+      setStep(4)
     }
   }
 
@@ -87,9 +93,23 @@ export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
   }
 
   const handleTryAgain = () => {
-    setStep(2)
+    setStep(3)
     setSelectedCuisine(null)
     setSuggestedDishes([])
+  }
+
+  const formatCouponSavings = (coupon: any, price: number) => {
+    if (coupon.type === 'flat') {
+      return `Save ₹${coupon.value}`
+    } else if (coupon.type === 'percentage') {
+      const savings = Math.min((price * coupon.value) / 100, coupon.maxDiscount || Infinity)
+      return `Save ₹${Math.round(savings)}`
+    } else if (coupon.type === 'free_delivery') {
+      return 'Free Delivery'
+    } else if (coupon.type === 'free_item') {
+      return `+ Free ${coupon.freeItem?.name}`
+    }
+    return ''
   }
 
   // Step 1: Price Range Selection
@@ -150,8 +170,91 @@ export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
     )
   }
 
-  // Step 2: Cuisine Selection
+  // Step 2: Coupon Selection
   if (step === 2) {
+    const availableCoupons = getAvailableCoupons()
+    
+    return (
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-background rounded-2xl overflow-hidden shadow-xl animate-in zoom-in duration-300 max-h-[90vh] flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-gradient-to-r from-primary/10 to-transparent shrink-0">
+            <div className="flex items-center gap-2">
+              <Gift className="w-5 h-5 text-primary" />
+              <h2 className="text-xl font-bold text-foreground">Available Offers</h2>
+            </div>
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-3">
+            {availableCoupons.length > 0 ? (
+              <>
+                {availableCoupons.map(coupon => (
+                  <button
+                    key={coupon.id}
+                    onClick={() => setSelectedCoupon(coupon)}
+                    className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                      selectedCoupon?.id === coupon.id
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border hover:border-primary hover:bg-primary/5'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <h4 className="font-bold text-foreground text-sm">{coupon.title}</h4>
+                        <p className="text-xs text-muted-foreground mt-1">{coupon.description}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-xs font-mono bg-muted px-2 py-1 rounded text-foreground">
+                            {coupon.code}
+                          </span>
+                          <span className="text-xs text-primary font-semibold">
+                            {formatCouponSavings(coupon, priceRange)}
+                          </span>
+                        </div>
+                      </div>
+                      {selectedCoupon?.id === coupon.id && (
+                        <Zap className="w-5 h-5 text-primary flex-shrink-0 mt-1" />
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-muted-foreground">No coupons available for this budget</p>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="flex gap-3 px-6 py-4 border-t border-border bg-muted/50 shrink-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setStep(1)
+                setSelectedCoupon(null)
+              }}
+              className="flex-1"
+            >
+              Back
+            </Button>
+            <Button
+              onClick={() => setStep(3)}
+              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              Continue
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Step 3: Cuisine Selection
+  if (step === 3) {
     return (
       <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-background rounded-2xl overflow-hidden shadow-xl animate-in zoom-in duration-300">
@@ -168,7 +271,12 @@ export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
 
           {/* Content */}
           <div className="p-6 space-y-4">
-            <p className="text-sm text-muted-foreground text-center">Budget: <span className="font-bold text-primary">₹{priceRange}</span></p>
+            <div className="space-y-2 p-3 bg-muted rounded-lg">
+              <p className="text-xs text-muted-foreground">Budget: <span className="font-bold text-primary">₹{priceRange}</span></p>
+              {selectedCoupon && (
+                <p className="text-xs text-muted-foreground">Coupon: <span className="font-bold text-primary">{selectedCoupon.code}</span></p>
+              )}
+            </div>
 
             <div className="space-y-3">
               {(Object.keys(CUISINE_LABELS) as CuisineType[]).map(cuisine => (
@@ -187,10 +295,10 @@ export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
 
             <Button
               variant="outline"
-              onClick={() => setStep(1)}
+              onClick={() => setStep(2)}
               className="w-full"
             >
-              Back
+              Back to Offers
             </Button>
           </div>
         </div>
@@ -198,8 +306,8 @@ export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
     )
   }
 
-  // Step 3: Dish Selection (2 options)
-  if (step === 3 && suggestedDishes.length > 0) {
+  // Step 4: Dish Selection (2 options)
+  if (step === 4 && suggestedDishes.length > 0) {
     return (
       <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-background rounded-2xl overflow-hidden shadow-xl animate-in zoom-in duration-300">
@@ -215,7 +323,14 @@ export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
           </div>
 
           {/* Content */}
-          <div className="p-6 space-y-4">
+          <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+            {selectedCoupon && (
+              <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                <p className="text-xs text-primary font-semibold">{selectedCoupon.title}</p>
+                <p className="text-xs text-muted-foreground mt-1">{selectedCoupon.description}</p>
+              </div>
+            )}
+
             {suggestedDishes.map((dish, idx) => (
               <button
                 key={`${dish.id}-${idx}`}
@@ -239,14 +354,14 @@ export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
 
                   {/* Dish Info */}
                   <div className="flex-1 text-left">
-                    <h3 className="font-bold text-foreground truncate">{dish.name}</h3>
+                    <h3 className="font-bold text-foreground truncate text-sm">{dish.name}</h3>
                     <p className="text-xs text-muted-foreground line-clamp-2">{dish.description}</p>
                     
                     <div className="flex items-center justify-between mt-2">
                       <div className="flex items-center gap-1">
-                        <span className="text-sm font-semibold text-primary">★ {dish.rating}</span>
+                        <span className="text-xs font-semibold text-primary">★ {dish.rating}</span>
                       </div>
-                      <span className="font-bold text-foreground">
+                      <span className="font-bold text-foreground text-sm">
                         ₹{dish.fullPrice || dish.price}
                       </span>
                     </div>
