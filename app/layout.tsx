@@ -57,7 +57,7 @@ export default function RootLayout({
           <SplashScreen />
           <CartOverlay />
         </CartProvider>
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+        <Analytics />
       </body>
     </html>
   )
