@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { useCart } from '@/context/cart-context'
 import { BottomNav } from '@/components/bottom-nav'
 import menuData from '@/data/menu.json'
+import { useMenu } from '@/hooks/use-menu'
 import couponsData from '@/data/coupons.json'
 import { cn } from '@/lib/utils'
 
@@ -40,7 +41,15 @@ interface CustomerDetails {
 type CheckoutStep = 'cart' | 'details' | 'payment' | 'processing'
 
 export default function CartPage() {
-  const { items, updateQuantity, removeItem, getTotal, clearCart } = useCart()
+  const { items, updateQuantity, removeItem, getTotal, clearCart, hydrated } = useCart()
+  const liveMenu = useMenu()
+
+  // Admin ne stock band kiya to yahan turant pata chal jaata hai.
+  const soldOut = items.filter(item => {
+    const dish = liveMenu.dishes.find(d => d.id === item.id)
+    return !dish || dish.inStock === false
+  })
+  const hasSoldOut = soldOut.length > 0
   const [promoCode, setPromoCode] = useState('')
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null)
   const [promoError, setPromoError] = useState('')
@@ -206,6 +215,14 @@ export default function CartPage() {
   }
 
   const availableCoupons = couponsData.coupons.filter(c => c.isActive) as Coupon[]
+
+  if (!hydrated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-sm text-muted-foreground">Cart load ho raha hai...</p>
+      </div>
+    )
+  }
 
   if (items.length === 0 && checkoutStep === 'cart') {
     return (
@@ -806,11 +823,25 @@ export default function CartPage() {
 
       {/* Checkout Footer */}
       <div className="fixed bottom-16 left-0 right-0 bg-background border-t border-border p-4 safe-area-pb">
+        {hasSoldOut && (
+          <div className="mb-3 rounded-xl border border-red-300 bg-red-50 p-3">
+            <p className="text-sm font-medium text-red-700">
+              Ye abhi out of stock hai: {soldOut.map(i => i.name).join(', ')}
+            </p>
+            <button
+              onClick={() => soldOut.forEach(i => removeItem(i.id, i.size))}
+              className="mt-1 text-xs font-semibold text-red-700 underline"
+            >
+              Cart se hata do
+            </button>
+          </div>
+        )}
         <Button 
           onClick={() => setCheckoutStep('details')}
-          className="w-full bg-primary text-primary-foreground h-12 text-base font-semibold"
+          disabled={hasSoldOut}
+          className="w-full bg-primary text-primary-foreground h-12 text-base font-semibold disabled:opacity-50"
         >
-          Proceed to Checkout - Rs.{total}
+          {hasSoldOut ? 'Out of stock item hatao' : `Proceed to Checkout - Rs.${total}`}
         </Button>
       </div>
 

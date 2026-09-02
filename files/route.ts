@@ -1,6 +1,6 @@
 import { list, put } from '@vercel/blob'
 import { NextRequest, NextResponse } from 'next/server'
-import { baseMenu, EMPTY_OVERRIDES, MenuOverrides } from '@/lib/menu-overrides'
+import { baseMenu, EMPTY_OVERRIDES, MenuOverrides, findDuplicatePairs } from '@/lib/menu-overrides'
 
 export const dynamic = 'force-dynamic'
 const PATH = 'kabab-kitchen/menu-overrides.json'
@@ -21,29 +21,26 @@ async function readOverrides(): Promise<MenuOverrides> {
   }
 }
 
-/** Returns every dish plus whatever the admin has already changed. */
+/** Poora menu + admin ke ab tak ke changes + duplicate pairs. */
 export async function GET(request: NextRequest) {
   if (!authorized(request)) {
     return NextResponse.json({ error: 'Invalid admin key' }, { status: 401 })
   }
   const overrides = await readOverrides()
+  const duplicates = findDuplicatePairs(baseMenu.dishes).map(group => ({
+    name: group[0].name,
+    category: group[0].category,
+    ids: group.map(d => ({ id: d.id, price: d.price ?? null })),
+  }))
   return NextResponse.json({
-    dishes: baseMenu.dishes.map(d => ({
-      id: d.id,
-      name: d.name,
-      category: d.category,
-      isVeg: d.isVeg,
-      image: d.image,
-      price: d.price,
-      halfPrice: d.halfPrice,
-      fullPrice: d.fullPrice,
-    })),
+    dishes: baseMenu.dishes,
     categories: baseMenu.categories,
     overrides,
+    duplicates,
   })
 }
 
-/** Saves the admin's edits. */
+/** Admin ke changes save karta hai. */
 export async function PUT(request: NextRequest) {
   if (!authorized(request)) {
     return NextResponse.json({ error: 'Invalid admin key' }, { status: 401 })
@@ -52,6 +49,7 @@ export async function PUT(request: NextRequest) {
   const payload: MenuOverrides = {
     updatedAt: new Date().toISOString(),
     dishes: body.dishes || {},
+    newDishes: body.newDishes || [],
   }
   const blob = await put(PATH, JSON.stringify(payload), {
     access: 'public',

@@ -17,12 +17,16 @@ export interface Dish {
   isPopular: boolean
   isNew: boolean
   image: string
+  variants?: { key: 'half' | 'full' | 'dry' | 'roll'; label: string; price: number; note?: string }[]
+  inStock?: boolean
+  hidden?: boolean
 }
 
 export interface Category {
   id: string
   name: string
   icon: string
+  image?: string
 }
 
 export interface PromoCode {
@@ -55,9 +59,7 @@ export interface RestaurantInfo {
 export interface MenuData {
   categories: Category[]
   dishes: Dish[]
-  todaysSpecials?: TodaysSpecial[]
-  promoCodes?: PromoCode[]
-  promos?: PromoCode[]
-  coupons?: any[]
+  todaysSpecials: TodaysSpecial[]
+  promoCodes: PromoCode[]
   restaurantInfo: RestaurantInfo
 }
