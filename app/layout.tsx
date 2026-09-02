@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next'
 import { Poppins } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { CartProvider } from '@/context/cart-context'
+import { SplashScreen } from '@/components/splash-screen'
+import { CartOverlay } from '@/components/cart-overlay'
 import './globals.css'
 
 const poppins = Poppins({ 
@@ -52,6 +54,8 @@ export default function RootLayout({
       <body className={`${poppins.variable} font-sans antialiased`}>
         <CartProvider>
           {children}
+          <SplashScreen />
+          <CartOverlay />
         </CartProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
