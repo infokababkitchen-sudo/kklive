@@ -165,7 +165,7 @@ export default function MenuPage() {
         </div>
         {filteredDishes.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            {(activeFilters.includes('new') || popularDishes.length === 0 ? filteredDishes : regularDishes).map(dish => (
+            {filteredDishes.map(dish => (
               <DishCard key={dish.id} dish={dish} />
             ))}
           </div>
