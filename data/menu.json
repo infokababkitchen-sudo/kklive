@@ -660,7 +660,7 @@
       "name": "Crispy Wings (No Spicy)",
       "category": "crispy-chicken-specials",
       "isVeg": false,
-      "description": "The same crisp wings, mild \u2014 easy on the heat.",
+      "description": "The same crisp wings, mild — easy on the heat.",
       "rating": 4.5,
       "reviews": 0,
       "isPopular": false,
@@ -1364,6 +1364,31 @@
   "restaurantInfo": {
     "name": "Kabab Kitchen",
     "deliveryTime": "35-40 minutes",
-    "minOrderForFreeDelivery": 299
-  }
+    "minOrderForFreeDelivery": 299,
+    "phone": "+91 00000 00000",
+    "whatsapp": "910000000000",
+    "outlet": "Kabab Kitchen, Ghaziabad",
+    "timings": {
+      "lunch": "12:00 PM - 4:00 PM",
+      "dinner": "7:00 PM - 11:00 PM"
+    }
+  },
+  "todaysSpecials": [
+    {
+      "id": 5,
+      "discountPercent": 15
+    },
+    {
+      "id": 12,
+      "discountPercent": 10
+    },
+    {
+      "id": 14,
+      "discountPercent": 20
+    },
+    {
+      "id": 19,
+      "discountPercent": 10
+    }
+  ]
 }
