@@ -3,12 +3,11 @@
 import { useState } from 'react'
 import { X, Sparkles, ChevronRight, Gift, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import menuData from '@/data/menu.json'
+import { useMenu } from '@/hooks/use-menu'
 import { MenuData, Dish } from '@/types/menu'
 import { useCart } from '@/context/cart-context'
 import Image from 'next/image'
 
-const data = menuData as MenuData & { coupons: any[] }
 
 interface SurpriseMePopupProps {
   onClose: () => void
@@ -31,6 +30,7 @@ const CUISINE_LABELS: Record<CuisineType, string> = {
 }
 
 export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
+  const data = useMenu() as MenuData & { coupons: any[] }
   const { addItem } = useCart()
   const [step, setStep] = useState(1)
   const [priceRange, setPriceRange] = useState(1000)

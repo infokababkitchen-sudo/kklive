@@ -5,11 +5,10 @@ import { Search, X, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DishCard } from '@/components/dish-card'
 import { useCart } from '@/context/cart-context'
-import menuData from '@/data/menu.json'
+import { useMenu } from '@/hooks/use-menu'
 import { MenuData, Dish } from '@/types/menu'
 import { cn } from '@/lib/utils'
 
-const data = menuData as MenuData
 
 interface SearchModalProps {
   isOpen: boolean
@@ -17,6 +16,7 @@ interface SearchModalProps {
 }
 
 export function SearchModal({ isOpen, onClose }: SearchModalProps) {
+  const data = useMenu()
   const [searchQuery, setSearchQuery] = useState('')
   const { addItem } = useCart()
 

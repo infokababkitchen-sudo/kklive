@@ -1,0 +1,31 @@
+import { put } from '@vercel/blob'
+import { NextRequest, NextResponse } from 'next/server'
+
+export const dynamic = 'force-dynamic'
+
+function authorized(request: NextRequest) {
+  const key = request.headers.get('x-admin-key')
+  return Boolean(process.env.ADMIN_SETTINGS_KEY && key === process.env.ADMIN_SETTINGS_KEY)
+}
+
+/** Uploads one dish photo to Vercel Blob and returns its public URL. */
+export async function POST(request: NextRequest) {
+  if (!authorized(request)) {
+    return NextResponse.json({ error: 'Invalid admin key' }, { status: 401 })
+  }
+  const form = await request.formData()
+  const file = form.get('file') as File | null
+  const dishId = form.get('dishId')
+  if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 })
+  if (!file.type.startsWith('image/')) {
+    return NextResponse.json({ error: 'Only image files' }, { status: 400 })
+  }
+
+  const ext = file.name.split('.').pop() || 'jpg'
+  const blob = await put(`kabab-kitchen/dishes/${dishId}.${ext}`, file, {
+    access: 'public',
+    addRandomSuffix: true,
+    contentType: file.type,
+  })
+  return NextResponse.json({ ok: true, url: blob.url })
+}

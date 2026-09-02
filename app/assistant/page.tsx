@@ -6,11 +6,10 @@ import { ArrowLeft, Sparkles, Flame, Leaf, Coffee, Sun, Moon, Zap, Heart, Utensi
 import { Button } from '@/components/ui/button'
 import { DishCard } from '@/components/dish-card'
 import { BottomNav } from '@/components/bottom-nav'
-import menuData from '@/data/menu.json'
+import { useMenu } from '@/hooks/use-menu'
 import { MenuData, Dish } from '@/types/menu'
 import { cn } from '@/lib/utils'
 
-const data = menuData as MenuData
 
 type Mood = 'hungry' | 'light' | 'adventurous' | 'comfort' | 'celebratory'
 type SpiceLevel = 'mild' | 'medium' | 'hot' | 'any'
@@ -38,6 +37,7 @@ const dietPreferences = [
 ]
 
 export default function AssistantPage() {
+  const data = useMenu()
   const [step, setStep] = useState(1)
   const [mood, setMood] = useState<Mood | null>(null)
   const [spiceLevel, setSpiceLevel] = useState<SpiceLevel | null>(null)

@@ -9,13 +9,13 @@ import { DishCard } from '@/components/dish-card'
 import { SurpriseMePopup } from '@/components/surprise-me-popup'
 import { FeaturedCarousel } from '@/components/featured-carousel'
 import { useCart } from '@/context/cart-context'
-import menuData from '@/data/menu.json'
+import { useMenu } from '@/hooks/use-menu'
 import { MenuData, Dish } from '@/types/menu'
 import Image from 'next/image'
 
-const data = menuData as MenuData
 
 export default function MenuPage() {
+  const data = useMenu()
   const [activeCategory, setActiveCategory] = useState('all')
   const [activeFilters, setActiveFilters] = useState<FilterType[]>([])
   const [showSurpriseMe, setShowSurpriseMe] = useState(false)

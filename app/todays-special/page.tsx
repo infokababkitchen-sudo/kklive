@@ -6,11 +6,10 @@ import { ArrowLeft, Sparkles, PartyPopper, Heart, Cake, Users, Calendar, Phone, 
 import { Button } from '@/components/ui/button'
 import { DishCard } from '@/components/dish-card'
 import { BottomNav } from '@/components/bottom-nav'
-import menuData from '@/data/menu.json'
+import { useMenu } from '@/hooks/use-menu'
 import { MenuData } from '@/types/menu'
 import { cn } from '@/lib/utils'
 
-const data = menuData as MenuData
 
 const bookingSections = [
   {
@@ -48,6 +47,7 @@ const bookingSections = [
 ]
 
 export default function TodaysSpecialPage() {
+  const data = useMenu()
   const [activeSection, setActiveSection] = useState<string | null>(null)
 
   const specialDishes = data.todaysSpecials.map(special => {
