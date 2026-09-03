@@ -54,3 +54,36 @@ CREATE TABLE IF NOT EXISTS order_items (
   cooking_request  TEXT
 );
 CREATE INDEX IF NOT EXISTS order_items_order_idx ON order_items (order_id);
+
+-- ---------------------------------------------------------------- settings
+-- One row per document. Menu overrides (prices, stock, contact, banners,
+-- delivery promo, panel toggle) live under the key 'menu-overrides'.
+CREATE TABLE IF NOT EXISTS settings (
+  key        TEXT PRIMARY KEY,
+  value      JSONB NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- --------------------------------------------------------------- customers
+-- One row per phone number. Upserting means two orders at the same moment
+-- cannot overwrite each other, which a single JSON file could not guarantee.
+CREATE TABLE IF NOT EXISTS customers (
+  phone             TEXT PRIMARY KEY,
+  name              TEXT NOT NULL DEFAULT '',
+  address           TEXT NOT NULL DEFAULT '',
+  marketing_consent BOOLEAN NOT NULL DEFAULT false,
+  order_count       INTEGER NOT NULL DEFAULT 0,
+  first_order_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_order_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS customers_last_order_idx ON customers (last_order_at DESC);
+
+-- ----------------------------------------------------------------- reviews
+CREATE TABLE IF NOT EXISTS reviews (
+  id         SERIAL PRIMARY KEY,
+  rating     SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  comment    TEXT NOT NULL DEFAULT '',
+  name       TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS reviews_created_idx ON reviews (created_at DESC);

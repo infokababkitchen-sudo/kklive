@@ -37,7 +37,7 @@ export default function AdminDashboard() {
   const [edits, setEdits] = useState<Record<string, DishOverride>>({})
   const [newDishes, setNewDishes] = useState<Dish[]>([])
   const [info, setInfo] = useState<Record<string, string>>({})
-  const [health, setHealth] = useState<{ blobConfigured?: boolean; blobReadable?: boolean }>({})
+  const [health, setHealth] = useState<{ dbConfigured?: boolean; blobConfigured?: boolean }>({})
   const [customers, setCustomers] = useState<any[] | null>(null)
   const [banners, setBanners] = useState<any[]>([])
   const [delivery, setDelivery] = useState<any>({})
@@ -299,14 +299,24 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {health.blobConfigured === false && (
+      {health.dbConfigured === false && (
         <div className="mb-4 rounded-xl border border-red-300 bg-red-50 p-3">
           <p className="text-sm font-semibold text-red-800">
-            Storage is not connected, so nothing can be saved.
+            Database not connected, so nothing can be saved.
           </p>
           <p className="mt-1 text-xs text-red-700">
-            BLOB_READ_WRITE_TOKEN is missing. In Vercel open Storage, connect a
-            Blob store to this project, then redeploy.
+            No connection string found. Run <code>npx vercel env pull .env.local</code>{' '}
+            locally, and make sure DATABASE_URL is set in Vercel for the live site.
+          </p>
+        </div>
+      )}
+
+      {health.blobConfigured === false && (
+        <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3">
+          <p className="text-sm font-semibold text-amber-900">Photo upload is off</p>
+          <p className="mt-1 text-xs text-amber-800">
+            Everything else saves normally. To add a photo, paste an image link in the
+            &quot;Photos and clips&quot; box on any dish.
           </p>
         </div>
       )}

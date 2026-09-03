@@ -1,34 +1,15 @@
-import { list, put } from '@vercel/blob'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaff } from '@/lib/auth'
-import { baseMenu, EMPTY_OVERRIDES, MenuOverrides, findDuplicatePairs } from '@/lib/menu-overrides'
+import { dbReady } from '@/lib/db'
+import { baseMenu, MenuOverrides, findDuplicatePairs } from '@/lib/menu-overrides'
+import { readOverrides, writeOverrides } from '@/lib/settings'
 
 export const dynamic = 'force-dynamic'
-const PATH = 'kabab-kitchen/menu-overrides.json'
 
-async function authorized(request: NextRequest) {
-  return Boolean(await requireStaff(request))
-}
-
-let blobReadable = false
-
-async function readOverrides(): Promise<MenuOverrides> {
-  try {
-    const result = await list({ prefix: PATH })
-    blobReadable = true
-    if (!result.blobs[0]) return EMPTY_OVERRIDES
-    const response = await fetch(result.blobs[0].url, { cache: 'no-store' })
-    return await response.json()
-  } catch {
-    blobReadable = false
-    return EMPTY_OVERRIDES
-  }
-}
-
-/** Poora menu + admin ke ab tak ke changes + duplicate pairs. */
+/** Full menu, saved changes, duplicate pairs and config health. */
 export async function GET(request: NextRequest) {
-  if (!(await authorized(request))) {
-    return NextResponse.json({ error: 'Invalid admin key' }, { status: 401 })
+  if (!(await requireStaff(request))) {
+    return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
   }
   const overrides = await readOverrides()
   const duplicates = findDuplicatePairs(baseMenu.dishes).map(group => ({
@@ -43,24 +24,21 @@ export async function GET(request: NextRequest) {
     overrides,
     duplicates,
     health: {
+      dbConfigured: dbReady(),
+      // photo uploads still need Blob; links pasted in the admin do not
       blobConfigured: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
-      blobReadable,
     },
   })
 }
 
-/** Admin ke changes save karta hai. */
+/** Saves changes to Postgres. */
 export async function PUT(request: NextRequest) {
-  if (!(await authorized(request))) {
-    return NextResponse.json({ error: 'Invalid admin key' }, { status: 401 })
+  if (!(await requireStaff(request))) {
+    return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
   }
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return NextResponse.json(
-      { error: 'BLOB_READ_WRITE_TOKEN is not set, so changes cannot be saved.' },
-      { status: 500 }
-    )
+  if (!dbReady()) {
+    return NextResponse.json({ error: 'Database is not configured' }, { status: 500 })
   }
-
   const body = (await request.json()) as MenuOverrides
   const payload: MenuOverrides = {
     updatedAt: new Date().toISOString(),
@@ -71,18 +49,12 @@ export async function PUT(request: NextRequest) {
     delivery: body.delivery || {},
     panelOrders: body.panelOrders === true,
   }
-
   try {
-    const blob = await put(PATH, JSON.stringify(payload), {
-      access: 'public',
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      contentType: 'application/json',
-    })
-    return NextResponse.json({ ok: true, url: blob.url, updatedAt: payload.updatedAt })
+    await writeOverrides(payload)
+    return NextResponse.json({ ok: true, updatedAt: payload.updatedAt })
   } catch (e) {
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : 'Blob write failed' },
+      { error: e instanceof Error ? e.message : 'Save failed' },
       { status: 500 }
     )
   }

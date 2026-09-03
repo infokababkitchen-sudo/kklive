@@ -1,92 +1,63 @@
-import { list, put } from '@vercel/blob'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaff } from '@/lib/auth'
+import { db, dbReady } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
-const PATH = 'kabab-kitchen/customers.json'
 
-export interface Customer {
-  phone: string
-  name: string
-  address: string
-  /** true only if the customer ticked the marketing box themselves */
-  marketingConsent: boolean
-  firstOrderAt: string
-  lastOrderAt: string
-  orderCount: number
-}
-
-async function readAll(): Promise<Customer[]> {
-  try {
-    const result = await list({ prefix: PATH })
-    if (!result.blobs[0]) return []
-    const res = await fetch(result.blobs[0].url, { cache: 'no-store' })
-    const data = await res.json()
-    return Array.isArray(data) ? data : []
-  } catch {
-    return []
-  }
-}
-
-/** Called at checkout. Keeps one row per phone number. */
+/** Called at checkout. One row per phone number. */
 export async function POST(request: NextRequest) {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return NextResponse.json({ ok: false, error: 'Storage not configured' }, { status: 200 })
-  }
+  if (!dbReady()) return NextResponse.json({ ok: false, reason: 'no-db' })
   try {
     const body = await request.json()
     const phone = String(body.phone || '').replace(/\D/g, '')
     if (phone.length !== 10) {
       return NextResponse.json({ ok: false, error: 'Invalid phone' }, { status: 400 })
     }
-
-    const now = new Date().toISOString()
-    const all = await readAll()
-    const i = all.findIndex(c => c.phone === phone)
-
-    if (i >= 0) {
-      all[i] = {
-        ...all[i],
-        name: body.name || all[i].name,
-        address: body.address || all[i].address,
-        marketingConsent: Boolean(body.marketingConsent),
-        lastOrderAt: now,
-        orderCount: (all[i].orderCount || 0) + 1,
-      }
-    } else {
-      all.push({
-        phone,
-        name: body.name || '',
-        address: body.address || '',
-        marketingConsent: Boolean(body.marketingConsent),
-        firstOrderAt: now,
-        lastOrderAt: now,
-        orderCount: 1,
-      })
-    }
-
-    await put(PATH, JSON.stringify(all), {
-      access: 'public',
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      contentType: 'application/json',
-    })
+    const sql = db()
+    // atomic upsert: two orders in the same second cannot overwrite each other
+    await sql`
+      INSERT INTO customers (phone, name, address, marketing_consent, order_count)
+      VALUES (${phone}, ${body.name || ''}, ${body.address || ''},
+              ${Boolean(body.marketingConsent)}, 1)
+      ON CONFLICT (phone) DO UPDATE SET
+        name              = COALESCE(NULLIF(EXCLUDED.name, ''), customers.name),
+        address           = COALESCE(NULLIF(EXCLUDED.address, ''), customers.address),
+        marketing_consent = EXCLUDED.marketing_consent,
+        order_count       = customers.order_count + 1,
+        last_order_at     = now()
+    `
     return NextResponse.json({ ok: true })
   } catch {
     // never block an order because the save failed
-    return NextResponse.json({ ok: false }, { status: 200 })
+    return NextResponse.json({ ok: false })
   }
 }
 
-/** Admin only. Returns the customer list. */
+/** Staff only. */
 export async function GET(request: NextRequest) {
   if (!(await requireStaff(request))) {
     return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
   }
-  const all = await readAll()
+  if (!dbReady()) return NextResponse.json({ error: 'Database is not configured' }, { status: 500 })
+
+  const sql = db()
+  const rows = (await sql`
+    SELECT phone, name, address, marketing_consent, order_count,
+           first_order_at, last_order_at
+    FROM customers ORDER BY last_order_at DESC LIMIT 1000
+  `) as any[]
+
   return NextResponse.json({
-    customers: all.sort((a, b) => b.lastOrderAt.localeCompare(a.lastOrderAt)),
-    total: all.length,
-    consented: all.filter(c => c.marketingConsent).length,
+    customers: rows.map(r => ({
+      phone: r.phone,
+      name: r.name,
+      address: r.address,
+      marketingConsent: r.marketing_consent,
+      orderCount: r.order_count,
+      firstOrderAt: r.first_order_at,
+      lastOrderAt: r.last_order_at,
+    })),
+    total: rows.length,
+    consented: rows.filter(r => r.marketing_consent).length,
   })
 }

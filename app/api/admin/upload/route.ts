@@ -23,7 +23,11 @@ export async function POST(request: NextRequest) {
 
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     return NextResponse.json(
-      { error: 'BLOB_READ_WRITE_TOKEN is not set, so photos cannot be uploaded.' },
+      {
+        error:
+          'Photo upload needs Vercel Blob, which is unavailable. Paste an image ' +
+          'link in the "Photos and clips" box instead.',
+      },
       { status: 500 }
     )
   }
