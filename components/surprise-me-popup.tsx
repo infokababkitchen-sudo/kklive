@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { X, Sparkles, ChevronRight, Gift, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useMenu } from '@/hooks/use-menu'
+import couponsData from '@/data/coupons.json'
 import { MenuData, Dish } from '@/types/menu'
-import { useCart } from '@/context/cart-context'
+import { useCart, makeLineId } from '@/context/cart-context'
 import Image from 'next/image'
 
 
@@ -38,9 +39,22 @@ export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
   const [selectedCuisine, setSelectedCuisine] = useState<CuisineType | null>(null)
   const [suggestedDishes, setSuggestedDishes] = useState<Dish[]>([])
 
+  const priceOf = (d: Dish) =>
+    d.price ?? d.variants?.[0]?.price ?? d.fullPrice ?? d.halfPrice ?? 0
+  const affordable = data.dishes.filter(d => priceOf(d) > 0 && priceOf(d) <= priceRange)
+  const allPrices = data.dishes.map(priceOf).filter(p => p > 0)
+  const cheapest = affordable.length ? Math.min(...affordable.map(priceOf)) : 0
+  const dearest = affordable.length ? Math.max(...affordable.map(priceOf)) : 0
+  const minDishPrice = allPrices.length ? Math.min(...allPrices) : 0
+  const availableCoupons = (couponsData.coupons as any[]).filter(
+    c => c.isActive && c.minOrderValue <= priceRange
+  )
+
   // Get available coupons based on price range
   const getAvailableCoupons = () => {
-    return data.coupons.filter(coupon => coupon.minOrderValue <= priceRange)
+    return (couponsData.coupons as any[]).filter(
+      c => c.isActive && c.minOrderValue <= priceRange
+    )
   }
 
   const getDishesForCuisine = (cuisine: CuisineType, maxPrice: number): Dish[] => {
@@ -70,25 +84,20 @@ export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
   }
 
   const handleSelectDish = (dish: Dish) => {
-    if (dish.halfPrice && dish.fullPrice) {
-      addItem({
-        id: dish.id,
-        name: dish.name,
-        price: dish.fullPrice,
-        image: dish.image,
-        size: 'full',
-        quantity: 1,
-      })
-    } else if (dish.price) {
-      addItem({
-        id: dish.id,
-        name: dish.name,
-        price: dish.price,
-        image: dish.image,
-        size: 'regular',
-        quantity: 1,
-      })
-    }
+    const variant = dish.variants?.[0]
+    const size = variant?.key ?? (dish.fullPrice ? 'full' : undefined)
+    const price = variant?.price ?? dish.price ?? dish.fullPrice ?? 0
+    if (!price) return
+    addItem({
+      id: dish.id,
+      name: dish.name,
+      price,
+      image: dish.image,
+      isVeg: dish.isVeg,
+      size,
+      quantity: 1,
+      lineId: makeLineId(dish.id, size),
+    })
     onClose()
   }
 
@@ -147,12 +156,44 @@ export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
               />
               
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <span className="text-sm text-muted-foreground">₹1</span>
+                <span className="text-sm text-muted-foreground">Rs.1</span>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-primary">₹{priceRange}</p>
-                  <p className="text-xs text-muted-foreground">Selected Budget</p>
+                  <p className="text-2xl font-bold text-primary">Rs.{priceRange}</p>
+                  <p className="text-xs text-muted-foreground">Your budget</p>
                 </div>
-                <span className="text-sm text-muted-foreground">₹2000</span>
+                <span className="text-sm text-muted-foreground">Rs.2000</span>
+              </div>
+
+              <div className="rounded-lg border p-3">
+                <p className="text-xs font-semibold text-foreground">
+                  {affordable.length} dishes within Rs.{priceRange}
+                  {availableCoupons.length > 0 &&
+                    ' · ' + availableCoupons.length + ' coupon(s) unlocked'}
+                </p>
+                {affordable.length > 0 ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Cheapest Rs.{cheapest} &middot; dearest you can afford Rs.{dearest}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Nothing this cheap. Try Rs.{minDishPrice} or more.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-1.5">
+                {[150, 300, 500, 800, 1200].map(v => (
+                  <button
+                    key={v}
+                    onClick={() => setPriceRange(v)}
+                    className={
+                      'rounded-full border px-3 py-1 text-xs ' +
+                      (priceRange === v ? 'border-primary text-primary' : 'text-muted-foreground')
+                    }
+                  >
+                    Rs.{v}
+                  </button>
+                ))}
               </div>
             </div>
 

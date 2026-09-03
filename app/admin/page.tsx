@@ -17,7 +17,7 @@ const VARIANT_LABELS: { key: VariantKey; label: string; note: string }[] = [
   { key: 'full', label: 'Full', note: '' },
 ]
 
-type Tab = 'stock' | 'dishes' | 'variants' | 'new' | 'settings'
+type Tab = 'stock' | 'dishes' | 'variants' | 'new' | 'settings' | 'customers'
 
 export default function AdminDashboard() {
   const [key, setKey] = useState('')
@@ -33,6 +33,7 @@ export default function AdminDashboard() {
   const [newDishes, setNewDishes] = useState<Dish[]>([])
   const [info, setInfo] = useState<Record<string, string>>({})
   const [health, setHealth] = useState<{ blobConfigured?: boolean; blobReadable?: boolean }>({})
+  const [customers, setCustomers] = useState<any[] | null>(null)
 
   const [search, setSearch] = useState('')
   const [cat, setCat] = useState('all')
@@ -194,6 +195,7 @@ export default function AdminDashboard() {
             ['variants', `Variants (${duplicates.length})`],
             ['new', 'Add dish'],
             ['settings', 'Contact'],
+            ['customers', 'Customers'],
           ] as [Tab, string][]
         ).map(([t, label]) => (
           <button
@@ -230,6 +232,10 @@ export default function AdminDashboard() {
             sends orders nowhere.
           </p>
         </div>
+      )}
+
+      {tab === 'customers' && (
+        <CustomersTab list={customers} adminKey={key} onLoad={setCustomers} />
       )}
 
       {tab === 'settings' && (
@@ -754,6 +760,123 @@ function Num({
         onChange={e => on(e.target.value === '' ? undefined : Number(e.target.value))}
         className="w-24 rounded-lg border bg-background p-2 text-sm"
       />
+    </div>
+  )
+}
+
+// --------------------------------------------------------------- customers
+function CustomersTab({
+  list,
+  adminKey,
+  onLoad,
+}: {
+  list: any[] | null
+  adminKey: string
+  onLoad: (c: any[]) => void
+}) {
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+
+  async function load() {
+    setBusy(true)
+    setErr('')
+    try {
+      const res = await fetch('/api/customers', { headers: { 'x-admin-key': adminKey } })
+      if (!res.ok) {
+        setErr('Could not load customers.')
+        return
+      }
+      const d = await res.json()
+      onLoad(d.customers || [])
+    } catch {
+      setErr('Could not load customers.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function exportCsv(onlyConsented: boolean) {
+    const rows = (list || []).filter(c => !onlyConsented || c.marketingConsent)
+    const csv = [
+      'phone,name,orders,last_order,marketing_consent',
+      ...rows.map(c =>
+        [c.phone, JSON.stringify(c.name || ''), c.orderCount, c.lastOrderAt, c.marketingConsent]
+          .join(',')
+      ),
+    ].join('\n')
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = onlyConsented ? 'customers-consented.csv' : 'customers-all.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const consented = (list || []).filter(c => c.marketingConsent).length
+
+  return (
+    <div className="space-y-3">
+      <p className="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
+        Every order saves the customer&apos;s number so they do not retype it and you can
+        see repeat buyers. Only tick-the-box customers count as marketing contacts &mdash;
+        send promotions to that list only.
+      </p>
+
+      {!list && (
+        <button
+          onClick={load}
+          disabled={busy}
+          className="w-full rounded-xl bg-primary p-3 font-semibold text-primary-foreground disabled:opacity-50"
+        >
+          {busy ? 'Loading...' : 'Load customers'}
+        </button>
+      )}
+      {err && <p className="text-sm text-red-600">{err}</p>}
+
+      {list && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-xl border p-3">
+              <p className="text-2xl font-bold">{list.length}</p>
+              <p className="text-xs text-muted-foreground">Customers</p>
+            </div>
+            <div className="rounded-xl border p-3">
+              <p className="text-2xl font-bold text-green-600">{consented}</p>
+              <p className="text-xs text-muted-foreground">Opted in to marketing</p>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <button onClick={() => exportCsv(true)} className="flex-1 rounded-xl border p-2.5 text-sm">
+              Export marketing list
+            </button>
+            <button onClick={() => exportCsv(false)} className="flex-1 rounded-xl border p-2.5 text-sm">
+              Export all
+            </button>
+          </div>
+
+          <div className="divide-y rounded-xl border">
+            {list.map(c => (
+              <div key={c.phone} className="flex items-center justify-between gap-3 p-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{c.name || 'No name'}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {c.phone} &middot; {c.orderCount} order{c.orderCount > 1 ? 's' : ''}
+                  </p>
+                </div>
+                {c.marketingConsent && (
+                  <span className="shrink-0 rounded-full bg-green-100 px-2 py-1 text-[10px] font-semibold text-green-700">
+                    opted in
+                  </span>
+                )}
+              </div>
+            ))}
+            {!list.length && (
+              <p className="p-6 text-center text-sm text-muted-foreground">No customers yet.</p>
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }

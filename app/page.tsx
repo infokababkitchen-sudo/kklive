@@ -60,7 +60,7 @@ export default function MenuPage() {
       }
     })
     return counts
-  }, [])
+  }, [data])
 
   const filteredDishes = useMemo(() => {
     let dishes = data.dishes
@@ -89,7 +89,7 @@ export default function MenuPage() {
     }
 
     return dishes
-  }, [activeCategory, activeFilters])
+  }, [data, activeCategory, activeFilters])
 
   const popularDishes = filteredDishes.filter(d => d.isPopular)
   const regularDishes = filteredDishes.filter(d => !d.isPopular)

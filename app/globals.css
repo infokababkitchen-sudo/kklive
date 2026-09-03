@@ -125,3 +125,28 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Surprise Me: a slow, quiet pull rather than a constant jiggle. */
+@keyframes kk-halo {
+  0%, 70%, 100% { transform: scale(0.7); opacity: 0; }
+  80%           { transform: scale(1.5); opacity: 0.55; }
+  90%           { transform: scale(1.9); opacity: 0; }
+}
+@keyframes kk-wand {
+  0%, 70%, 100% { transform: rotate(0deg) scale(1); }
+  76%           { transform: rotate(-16deg) scale(1.12); }
+  84%           { transform: rotate(12deg) scale(1.12); }
+  92%           { transform: rotate(0deg) scale(1); }
+}
+@keyframes kk-spark {
+  0%, 72%, 100% { transform: scale(0); opacity: 0; }
+  80%           { transform: scale(1); opacity: 1; }
+  90%           { transform: scale(0); opacity: 0; }
+}
+.kk-halo  { animation: kk-halo  5s ease-in-out infinite; }
+.kk-wand  { animation: kk-wand  5s ease-in-out infinite; transform-origin: 50% 70%; }
+.kk-spark { animation: kk-spark 5s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kk-halo, .kk-wand, .kk-spark { animation: none; }
+}

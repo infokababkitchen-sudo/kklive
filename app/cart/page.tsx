@@ -55,6 +55,7 @@ export default function CartPage() {
   const [promoError, setPromoError] = useState('')
   const [showCoupons, setShowCoupons] = useState(false)
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>('cart')
+  const [marketingConsent, setMarketingConsent] = useState(false)
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails>({
     name: '',
     phone: '',
@@ -168,45 +169,51 @@ export default function CartPage() {
     }).join('\n')
     
     // Build the WhatsApp message
-    let message = `🍢 *NEW ORDER - KABAB KITCHEN* 🍢\n\n`
-    message += `*Customer Details:*\n`
-    message += `👤 Name: ${customerDetails.name}\n`
-    message += `📱 Phone: ${customerDetails.phone}\n`
-    message += `📍 Address: ${customerDetails.address}\n\n`
-    message += `*Order Details:*\n${orderItems}\n`
-    
-    if (freeItem) {
-      message += `  ${freeItem.name} x1 = FREE\n`
-    }
-    
-    message += `\n*Bill Summary:*\n`
-    message += `Subtotal: Rs.${subtotal}\n`
-    
-    if (discount > 0) {
-      message += `Discount (${appliedCoupon?.code}): -Rs.${discount}\n`
-    }
-    
-    message += `SGST (2.5%): Rs.${sgst}\n`
-    message += `CGST (2.5%): Rs.${cgst}\n`
-    
-    if (actualDeliveryFee > 0) {
-      message += `Delivery: Rs.${actualDeliveryFee}\n`
-    } else {
-      message += `Delivery: FREE\n`
-    }
-    
-    message += `━━━━━━━━━━━━━\n`
-    message += `*TOTAL: Rs.${total}*\n\n`
-    message += `*Payment Mode:* ${paymentStatus}\n`
-    message += `*Expected Delivery:* 30-45 minutes\n\n`
-    message += `Thank you for ordering! 🙏`
-    
+    const L = []
+    L.push('*NEW ORDER - KABAB KITCHEN*')
+    L.push('')
+    L.push('*CUSTOMER*')
+    L.push('Name: ' + customerDetails.name)
+    L.push('Phone: ' + customerDetails.phone)
+    L.push('Address: ' + customerDetails.address)
+    L.push('')
+    L.push('*ORDER*')
+    L.push(orderItems)
+    if (freeItem) L.push('  ' + freeItem.name + ' x1 = FREE')
+    L.push('')
+    L.push('*BILL*')
+    L.push('Subtotal: Rs.' + subtotal)
+    if (discount > 0) L.push('Discount (' + (appliedCoupon?.code || '') + '): -Rs.' + discount)
+    L.push('SGST (2.5%): Rs.' + sgst)
+    L.push('CGST (2.5%): Rs.' + cgst)
+    L.push('Delivery: ' + (actualDeliveryFee > 0 ? 'Rs.' + actualDeliveryFee : 'FREE'))
+    L.push('-----------------------')
+    L.push('*TOTAL: Rs.' + total + '*')
+    L.push('')
+    L.push('Payment: ' + paymentStatus)
+    L.push('Expected delivery: 30-45 minutes')
+
+    const message = L.join('\n')
+
+    // Save the customer so they need not retype next time, and for marketing
+    // if they ticked the box. Fire and forget: never block an order.
+    fetch('/api/customers', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        name: customerDetails.name,
+        phone: customerDetails.phone,
+        address: customerDetails.address,
+        marketingConsent,
+      }),
+    }).catch(() => {})
+
     const whatsappUrl = `https://wa.me/${liveMenu.restaurantInfo.whatsapp}?text=${encodeURIComponent(message)}`
     window.open(whatsappUrl, '_blank')
   }
 
   const handleCODOrder = () => {
-    sendWhatsAppOrder('💵 Cash on Delivery')
+    sendWhatsAppOrder('Cash on Delivery')
     clearCart()
     setCheckoutStep('cart')
   }
@@ -216,7 +223,7 @@ export default function CartPage() {
   }
 
   const handlePaymentDone = () => {
-    sendWhatsAppOrder('💳 UPI - Payment in process')
+    sendWhatsAppOrder('UPI - payment in process')
     clearCart()
     setCheckoutStep('cart')
   }
@@ -356,6 +363,19 @@ export default function CartPage() {
 
         {/* Footer */}
         <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4 safe-area-pb">
+              <label className="flex items-start gap-2 rounded-xl border p-3">
+                <input
+                  type="checkbox"
+                  checked={marketingConsent}
+                  onChange={e => setMarketingConsent(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span className="text-xs text-muted-foreground">
+                  Send me offers and updates from Kabab Kitchen on WhatsApp. Optional -
+                  your order works either way.
+                </span>
+              </label>
+
           <Button 
             onClick={handleProceedToPayment}
             className="w-full bg-primary text-primary-foreground h-12 text-base font-semibold"

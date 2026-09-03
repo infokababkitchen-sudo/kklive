@@ -50,9 +50,13 @@ export function BottomNav() {
           })}
           <button
             onClick={() => setShowSurpriseMe(true)}
-            className="flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors text-muted-foreground hover:text-primary"
+            className="group flex flex-col items-center gap-1 rounded-lg px-4 py-2 text-muted-foreground transition-colors hover:text-primary"
           >
-            <Wand2 className="w-5 h-5" />
+            <span className="relative flex h-5 w-5 items-center justify-center">
+              <span className="kk-halo absolute inset-0 rounded-full bg-primary/25" />
+              <Wand2 className="kk-wand relative h-5 w-5 text-primary" />
+              <span className="kk-spark absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full bg-primary" />
+            </span>
             <span className="text-xs font-medium">Surprise</span>
           </button>
         </div>
