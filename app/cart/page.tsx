@@ -10,6 +10,8 @@ import { useCart } from '@/context/cart-context'
 import { BottomNav } from '@/components/bottom-nav'
 import menuData from '@/data/menu.json'
 import { useMenu } from '@/hooks/use-menu'
+import { deliveryFeeFor } from '@/lib/menu-overrides'
+import { CouponSheet } from '@/components/coupon-sheet'
 import { ReviewPrompt } from '@/components/review-prompt'
 import couponsData from '@/data/coupons.json'
 import { cn } from '@/lib/utils'
@@ -67,7 +69,11 @@ export default function CartPage() {
   const [errors, setErrors] = useState<Partial<CustomerDetails>>({})
 
   const subtotal = getTotal()
-  const deliveryFee = subtotal >= menuData.restaurantInfo.minOrderForFreeDelivery ? 0 : 40
+  const { fee: deliveryFee, promoRunning: freeDeliveryPromo } = deliveryFeeFor(
+    subtotal,
+    liveMenu.delivery,
+    liveMenu.restaurantInfo.minOrderForFreeDelivery
+  )
   
   const calculateDiscount = (): { discount: number; freeDelivery: boolean; freeItem: Coupon['freeItem'] | null } => {
     if (!appliedCoupon) return { discount: 0, freeDelivery: false, freeItem: null }
@@ -188,7 +194,14 @@ export default function CartPage() {
     if (discount > 0) L.push('Discount (' + (appliedCoupon?.code || '') + '): -Rs.' + discount)
     L.push('SGST (2.5%): Rs.' + sgst)
     L.push('CGST (2.5%): Rs.' + cgst)
-    L.push('Delivery: ' + (actualDeliveryFee > 0 ? 'Rs.' + actualDeliveryFee : 'FREE'))
+    L.push(
+      'Delivery: ' +
+        (actualDeliveryFee > 0
+          ? 'Rs.' + actualDeliveryFee
+          : freeDeliveryPromo
+            ? 'FREE (promo)'
+            : 'FREE')
+    )
     L.push('-----------------------')
     L.push('*TOTAL: Rs.' + total + '*')
     L.push('')
@@ -272,6 +285,17 @@ export default function CartPage() {
         </div>
         
         <BottomNav />
+      {showCoupons && (
+        <CouponSheet
+          coupons={availableCoupons as any}
+          subtotal={subtotal}
+          onApply={code => {
+            handleApplyPromo(code)
+            setShowCoupons(false)
+          }}
+          onClose={() => setShowCoupons(false)}
+        />
+      )}
       {showReview && (
         <ReviewPrompt name={customerDetails.name} onClose={() => setShowReview(false)} />
       )}
@@ -707,6 +731,15 @@ export default function CartPage() {
           )}
         </div>
 
+        {freeDeliveryPromo && (
+          <div className="mb-4 flex items-center gap-2 rounded-xl border border-green-300 bg-green-50 p-3">
+            <Truck className="h-5 w-5 shrink-0 text-green-700" />
+            <p className="text-sm font-medium text-green-800">
+              Free delivery on every order right now, no minimum.
+            </p>
+          </div>
+        )}
+
         {/* Promo Code Section */}
         <div className="bg-card rounded-xl border border-border p-4 mb-4">
           <div className="flex items-center justify-between mb-3">
@@ -715,10 +748,10 @@ export default function CartPage() {
               Promo Code
             </h3>
             <button 
-              onClick={() => setShowCoupons(!showCoupons)}
+              onClick={() => setShowCoupons(true)}
               className="text-sm text-primary font-medium"
             >
-              {showCoupons ? 'Hide' : 'View All'}
+              View offers
             </button>
           </div>
           
@@ -761,47 +794,6 @@ export default function CartPage() {
             <p className="text-xs text-destructive mt-2">{promoError}</p>
           )}
 
-          {/* Available Coupons List */}
-          {showCoupons && !appliedCoupon && (
-            <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">
-              <p className="text-xs text-muted-foreground mb-2">Available Coupons</p>
-              {availableCoupons.map(coupon => {
-                const isEligible = subtotal >= coupon.minOrderValue
-                return (
-                  <div 
-                    key={coupon.id} 
-                    className={cn(
-                      "border rounded-lg p-3 transition-all",
-                      isEligible 
-                        ? "border-primary/30 bg-primary/5 cursor-pointer hover:border-primary" 
-                        : "border-border bg-muted/50 opacity-60"
-                    )}
-                    onClick={() => isEligible && handleApplyPromo(coupon.code)}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-sm text-foreground">{coupon.code}</span>
-                          {coupon.type === 'free_delivery' && <Truck className="w-4 h-4 text-green-600" />}
-                          {coupon.type === 'free_item' && <Gift className="w-4 h-4 text-primary" />}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">{coupon.description}</p>
-                        {coupon.minOrderValue > 0 && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Min order: Rs.{coupon.minOrderValue}
-                            {!isEligible && ` (Add Rs.${coupon.minOrderValue - subtotal} more)`}
-                          </p>
-                        )}
-                      </div>
-                      {isEligible && (
-                        <span className="text-xs font-medium text-primary">Apply</span>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
         </div>
 
         {/* Order Summary */}
@@ -880,6 +872,17 @@ export default function CartPage() {
       </div>
 
       <BottomNav />
+      {showCoupons && (
+        <CouponSheet
+          coupons={availableCoupons as any}
+          subtotal={subtotal}
+          onApply={code => {
+            handleApplyPromo(code)
+            setShowCoupons(false)
+          }}
+          onClose={() => setShowCoupons(false)}
+        />
+      )}
       {showReview && (
         <ReviewPrompt name={customerDetails.name} onClose={() => setShowReview(false)} />
       )}

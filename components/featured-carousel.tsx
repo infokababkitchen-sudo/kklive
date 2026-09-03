@@ -13,17 +13,10 @@ interface Slide {
   image?: string
 }
 
-/** Used until the owner adds banners in the admin dashboard. */
-const FALLBACK: Slide[] = [
-  { id: 'f1', title: 'Special Offer', subtitle: 'Featured collection' },
-  { id: 'f2', title: 'Best Sellers', subtitle: 'Featured collection' },
-  { id: 'f3', title: 'New Arrivals', subtitle: 'Featured collection' },
-]
 
 export function FeaturedCarousel() {
   const menu = useMenu()
-  const fromAdmin = (menu.banners || []).filter(b => b.active)
-  const slides: Slide[] = fromAdmin.length ? fromAdmin : FALLBACK
+  const slides: Slide[] = (menu.banners || []).filter(b => b.active)
 
   const [current, setCurrent] = useState(0)
 
@@ -36,6 +29,9 @@ export function FeaturedCarousel() {
     const t = setInterval(() => setCurrent(p => (p + 1) % slides.length), 5000)
     return () => clearInterval(t)
   }, [slides.length])
+
+  // no banners configured in the admin dashboard -> show nothing
+  if (!slides.length) return null
 
   const next = () => setCurrent(p => (p + 1) % slides.length)
   const prev = () => setCurrent(p => (p - 1 + slides.length) % slides.length)

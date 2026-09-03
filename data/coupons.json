@@ -10,19 +10,30 @@
       "minOrderValue": 299,
       "validTill": "2026-12-31",
       "isActive": true,
-      "terms": ["Valid for new customers", "Min order Rs.299"]
+      "terms": [
+        "Valid for new customers",
+        "Min order Rs.299"
+      ]
     },
     {
-      "id": "freedel299",
-      "code": "FREEDEL",
-      "title": "Free Delivery",
-      "description": "Free delivery on orders above Rs.299",
-      "type": "free_delivery",
+      "id": "kkbooze",
+      "code": "KKBOOZE",
+      "title": "Free Soft Drink 250ml",
+      "description": "Order Rs.299+ and get a free 250ml soft drink",
+      "type": "free_item",
       "value": 0,
+      "freeItem": {
+        "name": "Soft Drink 250ml",
+        "price": 30,
+        "image": "/images/cold-drink.jpg"
+      },
       "minOrderValue": 299,
-      "validTill": "2026-12-31",
+      "validTill": "2027-12-31",
       "isActive": true,
-      "terms": ["Valid on orders Rs.299+", "Within 5km radius"]
+      "terms": [
+        "Valid on orders Rs.299+",
+        "While stocks last"
+      ]
     },
     {
       "id": "flat50",
@@ -34,7 +45,10 @@
       "minOrderValue": 499,
       "validTill": "2026-12-31",
       "isActive": true,
-      "terms": ["Valid on orders Rs.499+", "Cannot be combined"]
+      "terms": [
+        "Valid on orders Rs.499+",
+        "Cannot be combined"
+      ]
     },
     {
       "id": "freecake",
@@ -51,7 +65,10 @@
       "minOrderValue": 499,
       "validTill": "2026-12-31",
       "isActive": true,
-      "terms": ["Valid on orders Rs.499+", "While stocks last"]
+      "terms": [
+        "Valid on orders Rs.499+",
+        "While stocks last"
+      ]
     },
     {
       "id": "kkspecial",
@@ -64,7 +81,30 @@
       "minOrderValue": 499,
       "validTill": "2026-12-31",
       "isActive": true,
-      "terms": ["Max discount Rs.75", "Min order Rs.499"]
+      "terms": [
+        "Max discount Rs.75",
+        "Min order Rs.499"
+      ]
+    },
+    {
+      "id": "kkparty50",
+      "code": "KKPARTY50",
+      "title": "Free Soft Drink 750ml",
+      "description": "Order Rs.499+ and get a free 750ml soft drink",
+      "type": "free_item",
+      "value": 0,
+      "freeItem": {
+        "name": "Soft Drink 750ml",
+        "price": 60,
+        "image": "/images/cold-drink.jpg"
+      },
+      "minOrderValue": 499,
+      "validTill": "2027-12-31",
+      "isActive": true,
+      "terms": [
+        "Valid on orders Rs.499+",
+        "While stocks last"
+      ]
     },
     {
       "id": "flat100",
@@ -76,37 +116,44 @@
       "minOrderValue": 799,
       "validTill": "2026-12-31",
       "isActive": true,
-      "terms": ["Valid on orders Rs.799+", "Cannot be combined"]
+      "terms": [
+        "Valid on orders Rs.799+",
+        "Cannot be combined"
+      ]
     },
     {
-      "id": "grandopening",
-      "code": "KKGRAND",
-      "title": "Grand Opening 15% Off",
-      "description": "Grand opening special - 15% off on Rs.799+",
-      "type": "percentage",
-      "value": 15,
-      "maxDiscount": 150,
-      "minOrderValue": 799,
-      "validTill": "2026-06-30",
-      "isActive": true,
-      "terms": ["Limited time offer", "Max discount Rs.150"]
-    },
-    {
-      "id": "party999",
+      "id": "kkparty",
       "code": "KKPARTY",
-      "title": "Rs.150 Off + Free Raita",
-      "description": "Rs.150 off + Free Raita on orders Rs.999+",
+      "title": "Rs.100 Off",
+      "description": "Flat Rs.100 off on orders above Rs.999",
       "type": "flat",
-      "value": 150,
+      "value": 100,
+      "minOrderValue": 999,
+      "validTill": "2027-12-31",
+      "isActive": true,
+      "terms": [
+        "Valid on orders Rs.999+"
+      ]
+    },
+    {
+      "id": "kkgrand",
+      "code": "KKGRAND",
+      "title": "Free Soft Drink 1.2L",
+      "description": "Order Rs.999+ and get a free 1.2 litre soft drink",
+      "type": "free_item",
+      "value": 0,
       "freeItem": {
-        "name": "Raita",
-        "price": 59,
-        "image": "/images/placeholder-dish.jpg"
+        "name": "Soft Drink 1.2L",
+        "price": 90,
+        "image": "/images/cold-drink.jpg"
       },
       "minOrderValue": 999,
-      "validTill": "2026-12-31",
+      "validTill": "2027-12-31",
       "isActive": true,
-      "terms": ["Valid on orders Rs.999+", "Includes Free Raita"]
+      "terms": [
+        "Valid on orders Rs.999+",
+        "While stocks last"
+      ]
     },
     {
       "id": "megasaver",
@@ -118,7 +165,10 @@
       "minOrderValue": 1499,
       "validTill": "2026-12-31",
       "isActive": true,
-      "terms": ["Valid on orders Rs.1499+", "Best for group orders"]
+      "terms": [
+        "Valid on orders Rs.1499+",
+        "Best for group orders"
+      ]
     },
     {
       "id": "familyfeast",
@@ -136,7 +186,11 @@
       "minOrderValue": 1999,
       "validTill": "2026-12-31",
       "isActive": true,
-      "terms": ["Max discount Rs.400", "Includes Free Cold Drink 750ml", "Perfect for family gatherings"]
+      "terms": [
+        "Max discount Rs.400",
+        "Includes Free Cold Drink 750ml",
+        "Perfect for family gatherings"
+      ]
     }
   ]
 }

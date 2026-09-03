@@ -64,6 +64,7 @@ export interface MenuData {
   todaysSpecials: TodaysSpecial[]
   promoCodes: PromoCode[]
   addOnGroups?: AddOnGroup[]
+  delivery?: { freeUntil?: string; freeAbove?: number; fee?: number }
   banners?: { id: string; title: string; subtitle?: string; image?: string; active: boolean }[]
   restaurantInfo: RestaurantInfo
 }

@@ -53,7 +53,17 @@ export interface Banner {
   active: boolean
 }
 
+export interface DeliveryPromo {
+  /** ISO date. Until this day delivery is free on every order, any amount. */
+  freeUntil?: string
+  /** Outside the promo, free above this subtotal. */
+  freeAbove?: number
+  /** Charged when neither rule applies. */
+  fee?: number
+}
+
 export interface MenuOverrides {
+  delivery?: DeliveryPromo
   banners?: Banner[]
   restaurantInfo?: RestaurantInfoOverride
   updatedAt?: string
@@ -115,6 +125,7 @@ export function applyOverrides(base: MenuData, overrides: MenuOverrides | null):
     .filter(d => !d.hidden)
 
   const banners = overrides.banners?.filter(b => b.active) ?? []
+  const delivery = overrides.delivery
 
   const restaurantInfo = overrides.restaurantInfo
     ? {
@@ -129,6 +140,7 @@ export function applyOverrides(base: MenuData, overrides: MenuOverrides | null):
     ...base,
     dishes: [...existing, ...added].filter(isAvailableToday),
     banners,
+    delivery,
     restaurantInfo,
   }
 }
@@ -165,4 +177,23 @@ export function isAvailableToday(dish: Dish & DishExtras): boolean {
   }
 
   return true
+}
+
+
+/** Works out the delivery fee for a subtotal, honouring any running promo. */
+export function deliveryFeeFor(
+  subtotal: number,
+  delivery: DeliveryPromo | undefined,
+  fallbackFreeAbove: number
+): { fee: number; promoRunning: boolean } {
+  const baseFee = delivery?.fee ?? 40
+  const freeAbove = delivery?.freeAbove ?? fallbackFreeAbove
+
+  if (delivery?.freeUntil) {
+    const end = new Date(delivery.freeUntil + 'T23:59:59')
+    if (Number.isFinite(end.getTime()) && new Date() <= end) {
+      return { fee: 0, promoRunning: true }
+    }
+  }
+  return { fee: subtotal >= freeAbove ? 0 : baseFee, promoRunning: false }
 }

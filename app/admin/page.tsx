@@ -35,6 +35,7 @@ export default function AdminDashboard() {
   const [health, setHealth] = useState<{ blobConfigured?: boolean; blobReadable?: boolean }>({})
   const [customers, setCustomers] = useState<any[] | null>(null)
   const [banners, setBanners] = useState<any[]>([])
+  const [delivery, setDelivery] = useState<any>({})
   const [reviews, setReviews] = useState<any | null>(null)
 
   const [search, setSearch] = useState('')
@@ -59,6 +60,7 @@ export default function AdminDashboard() {
       setNewDishes(o?.newDishes || [])
       setHealth(d.health || {})
       setBanners(o?.banners || [])
+      setDelivery(o?.delivery || {})
       const ri = o?.restaurantInfo || {}
       setInfo({
         phone: ri.phone ?? d.restaurantInfo?.phone ?? '',
@@ -89,6 +91,7 @@ export default function AdminDashboard() {
           dishes: next?.edits ?? edits,
           newDishes: next?.newDishes ?? newDishes,
           banners,
+          delivery,
           restaurantInfo: {
             phone: info.phone,
             whatsapp: info.whatsapp,
@@ -252,6 +255,91 @@ export default function AdminDashboard() {
 
       {tab === 'settings' && (
         <div className="space-y-3">
+          <div className="rounded-xl border p-3">
+            <p className="text-sm font-semibold">Delivery</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              While a free-delivery promo is running, every order ships free with no
+              minimum. Clear the date to switch back to the normal rule.
+            </p>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {[
+                ['1 month', 1],
+                ['2 months', 2],
+                ['3 months', 3],
+              ].map(([label, months]) => (
+                <button
+                  key={label as string}
+                  onClick={() => {
+                    const d = new Date()
+                    d.setMonth(d.getMonth() + (months as number))
+                    setDelivery({ ...delivery, freeUntil: d.toISOString().slice(0, 10) })
+                  }}
+                  className="rounded-full border px-3 py-1.5 text-xs"
+                >
+                  Free for {label as string}
+                </button>
+              ))}
+              <button
+                onClick={() => setDelivery({ ...delivery, freeUntil: '' })}
+                className="rounded-full border px-3 py-1.5 text-xs text-red-600"
+              >
+                Stop promo
+              </button>
+            </div>
+
+            <label className="mt-3 block">
+              <span className="text-xs text-muted-foreground">
+                Free delivery for everyone until
+              </span>
+              <input
+                type="date"
+                value={delivery.freeUntil || ''}
+                onChange={e => setDelivery({ ...delivery, freeUntil: e.target.value })}
+                className="mt-1 w-full rounded-lg border bg-background p-2 text-sm"
+              />
+            </label>
+
+            <div className="mt-2 flex gap-2">
+              <label className="flex-1">
+                <span className="text-xs text-muted-foreground">Otherwise free above Rs.</span>
+                <input
+                  type="number"
+                  value={delivery.freeAbove ?? ''}
+                  placeholder="299"
+                  onChange={e =>
+                    setDelivery({
+                      ...delivery,
+                      freeAbove: e.target.value === '' ? undefined : Number(e.target.value),
+                    })
+                  }
+                  className="mt-1 w-full rounded-lg border bg-background p-2 text-sm"
+                />
+              </label>
+              <label className="flex-1">
+                <span className="text-xs text-muted-foreground">Delivery charge Rs.</span>
+                <input
+                  type="number"
+                  value={delivery.fee ?? ''}
+                  placeholder="40"
+                  onChange={e =>
+                    setDelivery({
+                      ...delivery,
+                      fee: e.target.value === '' ? undefined : Number(e.target.value),
+                    })
+                  }
+                  className="mt-1 w-full rounded-lg border bg-background p-2 text-sm"
+                />
+              </label>
+            </div>
+
+            <p className="mt-2 text-xs font-medium text-green-700">
+              {delivery.freeUntil
+                ? 'Free delivery on every order until ' + delivery.freeUntil
+                : 'Normal rule: free above Rs.' + (delivery.freeAbove ?? 299)}
+            </p>
+          </div>
+
           <p className="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
             Checkout sends every order to the WhatsApp number below. Use the
             country code with no plus sign or spaces, for example 919266321191.
