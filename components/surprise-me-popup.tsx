@@ -53,6 +53,7 @@ export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
   const [selectedCoupon, setSelectedCoupon] = useState<any>(null)
   const [selectedCuisine, setSelectedCuisine] = useState<CuisineType | null>(null)
   const [suggestedDishes, setSuggestedDishes] = useState<Dish[]>([])
+  const [pickVariantFor, setPickVariantFor] = useState<Dish | null>(null)
 
   const priceOf = (d: Dish) =>
     d.price ?? d.variants?.[0]?.price ?? d.fullPrice ?? d.halfPrice ?? 0
@@ -97,8 +98,13 @@ export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
     }
   }
 
-  const handleSelectDish = (dish: Dish) => {
-    const variant = dish.variants?.[0]
+  const handleSelectDish = (dish: Dish, chosen?: { key: any; label: string; price: number }) => {
+    // more than one option and none picked yet -> ask first
+    if (!chosen && (dish.variants?.length ?? 0) > 1) {
+      setPickVariantFor(dish)
+      return
+    }
+    const variant = chosen ?? dish.variants?.[0]
     const size = variant?.key ?? (dish.fullPrice ? 'full' : undefined)
     const price = variant?.price ?? dish.price ?? dish.fullPrice ?? 0
     if (!price) return
@@ -349,7 +355,7 @@ export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
   if (step === 4 && suggestedDishes.length > 0) {
     return (
       <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-background rounded-2xl overflow-hidden shadow-xl animate-in zoom-in duration-300">
+        <div className="relative w-full max-w-md bg-background rounded-2xl overflow-hidden shadow-xl animate-in zoom-in duration-300">
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-gradient-to-r from-primary/10 to-transparent">
             <div className="flex items-center gap-2">
@@ -400,8 +406,21 @@ export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
                       <div className="flex items-center gap-1">
                         <span className="text-xs font-semibold text-primary">★ {dish.rating}</span>
                       </div>
-                      <span className="font-bold text-foreground text-sm">
-                        ₹{dish.fullPrice || dish.price}
+                      <span className="text-right">
+                        {(dish.variants?.length ?? 0) > 1 ? (
+                          <>
+                            <span className="block text-sm font-bold text-foreground">
+                              from Rs.{Math.min(...dish.variants!.map(v => v.price))}
+                            </span>
+                            <span className="block text-[10px] text-muted-foreground">
+                              {dish.variants!.map(v => v.label).join(' or ')}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-sm font-bold text-foreground">
+                            Rs.{priceOf(dish)}
+                          </span>
+                        )}
                       </span>
                     </div>
                   </div>
@@ -420,6 +439,44 @@ export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
               Try Again
             </Button>
           </div>
+
+          {pickVariantFor && (
+            <div className="absolute inset-0 z-10 flex items-end bg-black/50">
+              <div className="w-full rounded-t-2xl bg-background p-4">
+                <p className="text-base font-bold">{pickVariantFor.name}</p>
+                <p className="mb-3 text-xs text-muted-foreground">
+                  Which one would you like?
+                </p>
+                <div className="space-y-2">
+                  {pickVariantFor.variants!.map(v => (
+                    <button
+                      key={v.key}
+                      onClick={() => {
+                        const d = pickVariantFor
+                        setPickVariantFor(null)
+                        handleSelectDish(d, v)
+                      }}
+                      className="flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left hover:border-primary"
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-sm font-medium">{v.label}</span>
+                        {v.note && (
+                          <span className="block text-xs text-muted-foreground">{v.note}</span>
+                        )}
+                      </span>
+                      <span className="shrink-0 text-sm font-bold text-primary">Rs.{v.price}</span>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setPickVariantFor(null)}
+                  className="mt-3 w-full p-2 text-sm text-muted-foreground"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     )
