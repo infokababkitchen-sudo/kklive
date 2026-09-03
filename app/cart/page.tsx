@@ -210,6 +210,37 @@ export default function CartPage() {
 
     const message = L.join('\n')
 
+    // Send the order to the admin panel when the owner has it switched on.
+    // WhatsApp still goes out either way, so a database hiccup cannot lose an order.
+    if (liveMenu.panelOrders) {
+      fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          name: customerDetails.name,
+          phone: customerDetails.phone,
+          address: customerDetails.address,
+          paymentMethod: paymentStatus.toLowerCase().includes('upi') ? 'upi' : 'cod',
+          couponCode: appliedCoupon?.code || null,
+          subtotal,
+          discount,
+          tax: sgst + cgst,
+          deliveryFee: actualDeliveryFee,
+          total,
+          freeItem: freeItem?.name || null,
+          items: items.map(i => ({
+            id: i.id,
+            name: i.name,
+            size: i.size,
+            quantity: i.quantity,
+            price: i.price,
+            addOns: i.addOns || [],
+            cookingRequest: i.cookingRequest || null,
+          })),
+        }),
+      }).catch(() => {})
+    }
+
     // Save the customer so they need not retype next time, and for marketing
     // if they ticked the box. Fire and forget: never block an order.
     fetch('/api/customers', {

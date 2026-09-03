@@ -1,5 +1,6 @@
 import { list, put } from '@vercel/blob'
 import { NextRequest, NextResponse } from 'next/server'
+import { requireStaff } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 const PATH = 'kabab-kitchen/customers.json'
@@ -79,9 +80,8 @@ export async function POST(request: NextRequest) {
 
 /** Admin only. Returns the customer list. */
 export async function GET(request: NextRequest) {
-  const key = request.headers.get('x-admin-key')
-  if (!process.env.ADMIN_SETTINGS_KEY || key !== process.env.ADMIN_SETTINGS_KEY) {
-    return NextResponse.json({ error: 'Invalid admin key' }, { status: 401 })
+  if (!(await requireStaff(request))) {
+    return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
   }
   const all = await readAll()
   return NextResponse.json({

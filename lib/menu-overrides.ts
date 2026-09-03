@@ -76,6 +76,8 @@ export interface DeliveryPromo {
 }
 
 export interface MenuOverrides {
+  /** true = orders also land in the admin Orders panel, not only WhatsApp */
+  panelOrders?: boolean
   delivery?: DeliveryPromo
   banners?: Banner[]
   restaurantInfo?: RestaurantInfoOverride
@@ -141,6 +143,7 @@ export function applyOverrides(base: MenuData, overrides: MenuOverrides | null):
 
   const banners = overrides.banners?.filter(b => b.active) ?? []
   const delivery = overrides.delivery
+  const panelOrders = overrides.panelOrders === true
 
   const restaurantInfo = overrides.restaurantInfo
     ? {
@@ -156,6 +159,7 @@ export function applyOverrides(base: MenuData, overrides: MenuOverrides | null):
     dishes: [...existing, ...added].filter(isAvailableToday),
     banners,
     delivery,
+    panelOrders,
     restaurantInfo,
   }
 }

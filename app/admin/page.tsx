@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import type { Dish, Category } from '@/types/menu'
 import type { DishOverride, MenuOverrides, Variant, VariantKey, DishMedia } from '@/lib/menu-overrides'
 import { mediaTypeOf } from '@/lib/menu-overrides'
+import { OrdersTab } from '@/components/orders-tab'
 
 interface DuplicateGroup {
   name: string
@@ -18,10 +19,13 @@ const VARIANT_LABELS: { key: VariantKey; label: string; note: string }[] = [
   { key: 'full', label: 'Full', note: '' },
 ]
 
-type Tab = 'stock' | 'dishes' | 'variants' | 'new' | 'settings' | 'customers' | 'banners' | 'reviews'
+type Tab = 'orders' | 'stock' | 'dishes' | 'variants' | 'new' | 'settings' | 'customers' | 'banners' | 'reviews'
 
 export default function AdminDashboard() {
   const [key, setKey] = useState('')
+  const [user, setUser] = useState('')
+  const [pass, setPass] = useState('')
+  const [useKey, setUseKey] = useState(false)
   const [unlocked, setUnlocked] = useState(false)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
@@ -37,11 +41,35 @@ export default function AdminDashboard() {
   const [customers, setCustomers] = useState<any[] | null>(null)
   const [banners, setBanners] = useState<any[]>([])
   const [delivery, setDelivery] = useState<any>({})
+  const [panelOrders, setPanelOrders] = useState(false)
   const [reviews, setReviews] = useState<any | null>(null)
 
   const [search, setSearch] = useState('')
   const [cat, setCat] = useState('all')
   const [uploading, setUploading] = useState<number | null>(null)
+
+  async function signIn() {
+    setBusy(true)
+    setMsg('')
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: user, password: pass }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setMsg(d.error || 'Wrong username or password.')
+        return
+      }
+      // the session cookie now authorises every admin call
+      await unlock()
+    } catch {
+      setMsg('Could not sign in.')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   async function unlock() {
     setBusy(true)
@@ -62,6 +90,7 @@ export default function AdminDashboard() {
       setHealth(d.health || {})
       setBanners(o?.banners || [])
       setDelivery(o?.delivery || {})
+      setPanelOrders(o?.panelOrders === true)
       const ri = o?.restaurantInfo || {}
       setInfo({
         phone: ri.phone ?? d.restaurantInfo?.phone ?? '',
@@ -81,6 +110,7 @@ export default function AdminDashboard() {
   async function save(next?: {
     edits?: Record<string, DishOverride>
     newDishes?: Dish[]
+    panelOrders?: boolean
   }) {
     setBusy(true)
     setMsg('')
@@ -93,6 +123,7 @@ export default function AdminDashboard() {
           newDishes: next?.newDishes ?? newDishes,
           banners,
           delivery,
+          panelOrders: next?.panelOrders ?? panelOrders,
           restaurantInfo: {
             phone: info.phone,
             whatsapp: info.whatsapp,
@@ -160,29 +191,72 @@ export default function AdminDashboard() {
   // ------------------------------------------------------------ locked
   if (!unlocked) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 p-6">
+      <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-5 p-6">
         <div>
           <p className="text-sm font-semibold text-primary">Kabab Kitchen</p>
           <h1 className="text-3xl font-bold">Admin dashboard</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Enter your key to manage prices, stock, variants, photos and contact details.
+            Sign in to manage orders, prices, stock, photos and offers.
           </p>
         </div>
-        <input
-          type="password"
-          value={key}
-          placeholder="Admin key"
-          onChange={e => setKey(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && unlock()}
-          className="rounded-xl border bg-background p-3"
-        />
+
+        {useKey ? (
+          <>
+            <input
+              type="password"
+              value={key}
+              placeholder="Admin key"
+              onChange={e => setKey(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && unlock()}
+              className="rounded-xl border bg-background p-3"
+            />
+            <button
+              onClick={unlock}
+              disabled={busy || !key}
+              className="rounded-xl bg-primary p-3 font-semibold text-primary-foreground disabled:opacity-50"
+            >
+              {busy ? 'Checking...' : 'Unlock'}
+            </button>
+          </>
+        ) : (
+          <>
+            <input
+              value={user}
+              placeholder="Username"
+              autoComplete="username"
+              onChange={e => setUser(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && signIn()}
+              className="rounded-xl border bg-background p-3"
+            />
+            <input
+              type="password"
+              value={pass}
+              placeholder="Password"
+              autoComplete="current-password"
+              onChange={e => setPass(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && signIn()}
+              className="rounded-xl border bg-background p-3"
+            />
+            <button
+              onClick={signIn}
+              disabled={busy || !user || !pass}
+              className="rounded-xl bg-primary p-3 font-semibold text-primary-foreground disabled:opacity-50"
+            >
+              {busy ? 'Signing in...' : 'Sign in'}
+            </button>
+          </>
+        )}
+
         <button
-          onClick={unlock}
-          disabled={busy || !key}
-          className="rounded-xl bg-primary p-3 font-semibold text-primary-foreground disabled:opacity-50"
+          onClick={() => {
+            setUseKey(!useKey)
+            setMsg('')
+          }}
+          className="text-xs text-muted-foreground underline"
         >
-          {busy ? 'Checking...' : 'Unlock'}
+          {useKey ? 'Sign in with username instead' : 'Use the admin key instead'}
         </button>
+
         {msg && <p className="text-sm text-red-600">{msg}</p>}
       </main>
     )
@@ -202,6 +276,7 @@ export default function AdminDashboard() {
       <div className="mb-4 flex gap-1 border-b">
         {(
           [
+            ['orders', 'Orders'],
             ['stock', 'Stock'],
             ['dishes', 'Dishes'],
             ['variants', `Variants (${duplicates.length})`],
@@ -369,6 +444,37 @@ export default function AdminDashboard() {
             </label>
           ))}
         </div>
+      )}
+
+      {tab === 'orders' && (
+        <>
+          <label className="mb-3 flex items-start gap-2 rounded-xl border p-3">
+            <input
+              type="checkbox"
+              checked={panelOrders}
+              onChange={e => {
+                const on = e.target.checked
+                setPanelOrders(on)
+                save({ panelOrders: on } as any)
+              }}
+              className="mt-0.5"
+            />
+            <span className="text-xs">
+              <span className="block text-sm font-medium">Show orders in this panel</span>
+              <span className="text-muted-foreground">
+                Off means WhatsApp only, exactly as today. On sends every order to both,
+                so WhatsApp still works if this tab is closed.
+              </span>
+            </span>
+          </label>
+          {panelOrders ? (
+            <OrdersTab adminKey={key} />
+          ) : (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Panel orders are off. Orders are going to WhatsApp only.
+            </p>
+          )}
+        </>
       )}
 
       {tab === 'stock' && (

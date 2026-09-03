@@ -21,3 +21,6 @@ node_modules
 *.zip
 /files/
 Patch files
+.env.local
+.vercel
+.env*

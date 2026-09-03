@@ -1,5 +1,6 @@
 import { list, put } from '@vercel/blob'
 import { NextRequest, NextResponse } from 'next/server'
+import { requireStaff } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 const PATH = 'kabab-kitchen/reviews.json'
@@ -27,9 +28,7 @@ async function readAll(): Promise<Review[]> {
 /** Public: average and recent reviews for the storefront. */
 export async function GET(request: NextRequest) {
   const all = await readAll()
-  const isAdmin =
-    process.env.ADMIN_SETTINGS_KEY &&
-    request.headers.get('x-admin-key') === process.env.ADMIN_SETTINGS_KEY
+  const isAdmin = Boolean(await requireStaff(request))
 
   const count = all.length
   const average = count ? Math.round((all.reduce((s, r) => s + r.rating, 0) / count) * 10) / 10 : 0

@@ -1,13 +1,13 @@
 import { list, put } from '@vercel/blob'
 import { NextRequest, NextResponse } from 'next/server'
+import { requireStaff } from '@/lib/auth'
 import { baseMenu, EMPTY_OVERRIDES, MenuOverrides, findDuplicatePairs } from '@/lib/menu-overrides'
 
 export const dynamic = 'force-dynamic'
 const PATH = 'kabab-kitchen/menu-overrides.json'
 
-function authorized(request: NextRequest) {
-  const key = request.headers.get('x-admin-key')
-  return Boolean(process.env.ADMIN_SETTINGS_KEY && key === process.env.ADMIN_SETTINGS_KEY)
+async function authorized(request: NextRequest) {
+  return Boolean(await requireStaff(request))
 }
 
 let blobReadable = false
@@ -27,7 +27,7 @@ async function readOverrides(): Promise<MenuOverrides> {
 
 /** Poora menu + admin ke ab tak ke changes + duplicate pairs. */
 export async function GET(request: NextRequest) {
-  if (!authorized(request)) {
+  if (!(await authorized(request))) {
     return NextResponse.json({ error: 'Invalid admin key' }, { status: 401 })
   }
   const overrides = await readOverrides()
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 
 /** Admin ke changes save karta hai. */
 export async function PUT(request: NextRequest) {
-  if (!authorized(request)) {
+  if (!(await authorized(request))) {
     return NextResponse.json({ error: 'Invalid admin key' }, { status: 401 })
   }
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
@@ -67,6 +67,9 @@ export async function PUT(request: NextRequest) {
     dishes: body.dishes || {},
     newDishes: body.newDishes || [],
     restaurantInfo: body.restaurantInfo || {},
+    banners: body.banners || [],
+    delivery: body.delivery || {},
+    panelOrders: body.panelOrders === true,
   }
 
   try {
