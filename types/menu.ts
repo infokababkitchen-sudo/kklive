@@ -61,5 +61,21 @@ export interface MenuData {
   dishes: Dish[]
   todaysSpecials: TodaysSpecial[]
   promoCodes: PromoCode[]
+  addOnGroups?: AddOnGroup[]
   restaurantInfo: RestaurantInfo
+}
+
+export interface AddOnOption {
+  id: string
+  name: string
+  price: number
+  isVeg?: boolean
+}
+
+export interface AddOnGroup {
+  id: string
+  name: string
+  maxSelect: number
+  appliesTo: string[]
+  options: AddOnOption[]
 }

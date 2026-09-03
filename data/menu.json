@@ -86,21 +86,6 @@
   ],
   "dishes": [
     {
-      "id": 1,
-      "name": "Veg Kabab",
-      "category": "kabab-khazana",
-      "isVeg": true,
-      "description": "Spiced mixed-vegetable patties grilled in the tandoor.",
-      "rating": 4.5,
-      "reviews": 0,
-      "isPopular": false,
-      "isNew": true,
-      "image": "/images/veg-kabab.jpg",
-      "calories": 0,
-      "spiceLevel": "medium",
-      "price": 89
-    },
-    {
       "id": 2,
       "name": "Veg Kabab",
       "category": "kabab-khazana",
@@ -113,22 +98,20 @@
       "image": "/images/veg-kabab.jpg",
       "calories": 0,
       "spiceLevel": "medium",
-      "price": 110
-    },
-    {
-      "id": 3,
-      "name": "Veg Dahi Kabab",
-      "category": "kabab-khazana",
-      "isVeg": true,
-      "description": "Hung-curd kababs, crisp outside and creamy within.",
-      "rating": 4.5,
-      "reviews": 0,
-      "isPopular": false,
-      "isNew": true,
-      "image": "/images/veg-dahi-kabab.jpg",
-      "calories": 0,
-      "spiceLevel": "medium",
-      "price": 89
+      "variants": [
+        {
+          "key": "dry",
+          "label": "Dry",
+          "price": 110,
+          "note": "2 seekh, 1 portion"
+        },
+        {
+          "key": "roll",
+          "label": "Roll",
+          "price": 89,
+          "note": "1 seekh roll, stuffed onion & masala"
+        }
+      ]
     },
     {
       "id": 4,
@@ -143,7 +126,20 @@
       "image": "/images/veg-dahi-kabab.jpg",
       "calories": 0,
       "spiceLevel": "medium",
-      "price": 110
+      "variants": [
+        {
+          "key": "dry",
+          "label": "Dry",
+          "price": 110,
+          "note": "2 seekh, 1 portion"
+        },
+        {
+          "key": "roll",
+          "label": "Roll",
+          "price": 89,
+          "note": "1 seekh roll, stuffed onion & masala"
+        }
+      ]
     },
     {
       "id": 5,
@@ -158,22 +154,20 @@
       "image": "/images/chicken-malai-kabab.jpg",
       "calories": 0,
       "spiceLevel": "medium",
-      "price": 140
-    },
-    {
-      "id": 6,
-      "name": "Ch. Malai Kabab",
-      "category": "kabab-khazana",
-      "isVeg": false,
-      "description": "Chicken in a cream and cheese marinade, mild and tender.",
-      "rating": 4.5,
-      "reviews": 0,
-      "isPopular": false,
-      "isNew": true,
-      "image": "/images/chicken-malai-kabab.jpg",
-      "calories": 0,
-      "spiceLevel": "medium",
-      "price": 130
+      "variants": [
+        {
+          "key": "dry",
+          "label": "Dry",
+          "price": 140,
+          "note": "2 seekh, 1 portion"
+        },
+        {
+          "key": "roll",
+          "label": "Roll",
+          "price": 130,
+          "note": "1 seekh roll, stuffed onion & masala"
+        }
+      ]
     },
     {
       "id": 7,
@@ -188,22 +182,20 @@
       "image": "/images/chicken-spicy-kabab.jpg",
       "calories": 0,
       "spiceLevel": "medium",
-      "price": 140
-    },
-    {
-      "id": 8,
-      "name": "Ch. Spicy Kabab",
-      "category": "kabab-khazana",
-      "isVeg": false,
-      "description": "Chicken in a fiery red chilli marinade, char-grilled.",
-      "rating": 4.5,
-      "reviews": 0,
-      "isPopular": false,
-      "isNew": true,
-      "image": "/images/chicken-spicy-kabab.jpg",
-      "calories": 0,
-      "spiceLevel": "medium",
-      "price": 130
+      "variants": [
+        {
+          "key": "dry",
+          "label": "Dry",
+          "price": 140,
+          "note": "2 seekh, 1 portion"
+        },
+        {
+          "key": "roll",
+          "label": "Roll",
+          "price": 130,
+          "note": "1 seekh roll, stuffed onion & masala"
+        }
+      ]
     },
     {
       "id": 9,
@@ -218,22 +210,20 @@
       "image": "/images/chicken-lemon-kabab.jpg",
       "calories": 0,
       "spiceLevel": "medium",
-      "price": 140
-    },
-    {
-      "id": 10,
-      "name": "Ch. Lemon Kabab",
-      "category": "kabab-khazana",
-      "isVeg": false,
-      "description": "Chicken with lemon, black pepper and fresh coriander.",
-      "rating": 4.5,
-      "reviews": 0,
-      "isPopular": false,
-      "isNew": true,
-      "image": "/images/chicken-lemon-kabab.jpg",
-      "calories": 0,
-      "spiceLevel": "medium",
-      "price": 130
+      "variants": [
+        {
+          "key": "dry",
+          "label": "Dry",
+          "price": 140,
+          "note": "2 seekh, 1 portion"
+        },
+        {
+          "key": "roll",
+          "label": "Roll",
+          "price": 130,
+          "note": "1 seekh roll, stuffed onion & masala"
+        }
+      ]
     },
     {
       "id": 11,
@@ -263,22 +253,20 @@
       "image": "/images/chicken-tandoori-kabab.jpg",
       "calories": 0,
       "spiceLevel": "medium",
-      "price": 130
-    },
-    {
-      "id": 13,
-      "name": "Ch. Tandoori Kabab",
-      "category": "kabab-khazana",
-      "isVeg": false,
-      "description": "Classic yoghurt-and-masala chicken from the clay oven.",
-      "rating": 4.5,
-      "reviews": 0,
-      "isPopular": false,
-      "isNew": true,
-      "image": "/images/chicken-tandoori-kabab.jpg",
-      "calories": 0,
-      "spiceLevel": "medium",
-      "price": 130
+      "variants": [
+        {
+          "key": "dry",
+          "label": "Dry",
+          "price": 130,
+          "note": "2 seekh, 1 portion"
+        },
+        {
+          "key": "roll",
+          "label": "Roll",
+          "price": 130,
+          "note": "1 seekh roll, stuffed onion & masala"
+        }
+      ]
     },
     {
       "id": 14,
@@ -293,22 +281,20 @@
       "image": "/images/mutton-kabab.jpg",
       "calories": 0,
       "spiceLevel": "medium",
-      "price": 180
-    },
-    {
-      "id": 15,
-      "name": "Mutton Kabab",
-      "category": "kabab-khazana",
-      "isVeg": false,
-      "description": "Minced mutton with warm spices, grilled on skewers.",
-      "rating": 4.5,
-      "reviews": 0,
-      "isPopular": false,
-      "isNew": true,
-      "image": "/images/mutton-kabab.jpg",
-      "calories": 0,
-      "spiceLevel": "medium",
-      "price": 180
+      "variants": [
+        {
+          "key": "dry",
+          "label": "Dry",
+          "price": 180,
+          "note": "2 seekh, 1 portion"
+        },
+        {
+          "key": "roll",
+          "label": "Roll",
+          "price": 180,
+          "note": "1 seekh roll, stuffed onion & masala"
+        }
+      ]
     },
     {
       "id": 16,
@@ -1407,6 +1393,101 @@
     {
       "id": 19,
       "discountPercent": 10
+    }
+  ],
+  "addOnGroups": [
+    {
+      "id": "accompaniments",
+      "name": "Add Accompaniments",
+      "maxSelect": 3,
+      "appliesTo": [
+        "all"
+      ],
+      "options": [
+        {
+          "id": "mint-chutney",
+          "name": "Extra Mint Chutney",
+          "price": 15,
+          "isVeg": true
+        },
+        {
+          "id": "onion-salad",
+          "name": "Onion Salad",
+          "price": 20,
+          "isVeg": true
+        },
+        {
+          "id": "green-chutney",
+          "name": "Green Chutney",
+          "price": 15,
+          "isVeg": true
+        },
+        {
+          "id": "extra-masala",
+          "name": "Extra Masala",
+          "price": 10,
+          "isVeg": true
+        }
+      ]
+    },
+    {
+      "id": "beverages",
+      "name": "Add Beverages",
+      "maxSelect": 2,
+      "appliesTo": [
+        "all"
+      ],
+      "options": [
+        {
+          "id": "pepsi",
+          "name": "Pepsi (475ml)",
+          "price": 60,
+          "isVeg": true
+        },
+        {
+          "id": "coke",
+          "name": "Coca-Cola (475ml)",
+          "price": 60,
+          "isVeg": true
+        },
+        {
+          "id": "water",
+          "name": "Mineral Water",
+          "price": 20,
+          "isVeg": true
+        },
+        {
+          "id": "buttermilk",
+          "name": "Chaas",
+          "price": 40,
+          "isVeg": true
+        }
+      ]
+    },
+    {
+      "id": "breads",
+      "name": "Add Breads",
+      "maxSelect": 3,
+      "appliesTo": [
+        "kabab-khazana",
+        "non-veg-main-course",
+        "pure-veg-main-course",
+        "soya-chaap"
+      ],
+      "options": [
+        {
+          "id": "tawa-roti",
+          "name": "Plain Tawa Roti",
+          "price": 15,
+          "isVeg": true
+        },
+        {
+          "id": "butter-roti",
+          "name": "Butter Tawa Roti",
+          "price": 20,
+          "isVeg": true
+        }
+      ]
     }
   ]
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Header } from '@/components/header'
 import { BottomNav } from '@/components/bottom-nav'
 import { CategoryTabs } from '@/components/category-tabs'
@@ -12,7 +13,7 @@ import { useCart } from '@/context/cart-context'
 import { useMenu } from '@/hooks/use-menu'
 import { MenuData, Dish } from '@/types/menu'
 import Image from 'next/image'
-import { Minus } from 'lucide-react'
+import { Minus, ChevronRight } from 'lucide-react'
 
 
 export default function MenuPage() {
@@ -22,6 +23,7 @@ export default function MenuPage() {
   const [showSurpriseMe, setShowSurpriseMe] = useState(false)
   const [hasShownSurpriseMe, setHasShownSurpriseMe] = useState(false)
   const { items, removeItem } = useCart()
+  const router = useRouter()
 
   // Show surprise me popup after 3 seconds on first load
   useEffect(() => {
@@ -96,38 +98,42 @@ export default function MenuPage() {
     <div className="min-h-screen bg-background pb-20">
       <Header />
       
-      {/* Selected Dishes Preview Above Bottom Nav */}
+      {/* Selected dishes strip above the bottom nav */}
       {items.length > 0 && (
-        <div className="fixed bottom-20 left-0 right-0 z-40 bg-background border-t border-border">
-          <div className="flex gap-2 px-4 py-2 overflow-x-auto scrollbar-hide">
-            {items.slice(0, 5).map((item, index) => (
-              <div key={item.lineId} className="relative shrink-0 pt-2 pr-2">
-                <div className="w-14 h-14 rounded-lg overflow-hidden border-2 border-primary">
-                  <Image
-                    src={item.image}
-                    alt={item.name}
-                    width={56}
-                    height={56}
-                    className="w-full h-full object-cover"
-                  />
+        <div className="fixed bottom-20 left-0 right-0 z-40 border-t border-border bg-background">
+          <div className="flex items-center gap-2 px-3 py-2">
+            <div className="flex flex-1 gap-1.5 overflow-x-auto scrollbar-hide">
+              {items.map(item => (
+                <div key={item.lineId} className="relative shrink-0 pt-1.5 pr-1.5">
+                  <div className="h-9 w-9 overflow-hidden rounded-md border border-primary">
+                    <Image
+                      src={item.image}
+                      alt={item.name}
+                      width={36}
+                      height={36}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <span className="absolute bottom-0 left-0 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary px-0.5 text-[9px] font-bold text-primary-foreground">
+                    {item.quantity}
+                  </span>
+                  <button
+                    onClick={() => removeItem(item.lineId)}
+                    aria-label={`Remove ${item.name}`}
+                    className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-foreground text-background shadow"
+                  >
+                    <Minus className="h-2.5 w-2.5" />
+                  </button>
                 </div>
-                <span className="absolute bottom-0 left-0 min-w-5 h-5 px-1 bg-primary text-primary-foreground text-xs font-bold rounded-full flex items-center justify-center">
-                  {item.quantity}
-                </span>
-                <button
-                  onClick={() => removeItem(item.lineId)}
-                  aria-label={`Remove ${item.name}`}
-                  className="absolute top-0 right-0 w-5 h-5 rounded-full bg-foreground text-background flex items-center justify-center shadow"
-                >
-                  <Minus className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
-            {items.length > 5 && (
-              <div className="w-14 h-14 rounded-lg bg-secondary border-2 border-secondary flex items-center justify-center text-xs font-bold text-secondary-foreground shrink-0">
-                +{items.length - 5}
-              </div>
-            )}
+              ))}
+            </div>
+            <button
+              onClick={() => router.push('/cart')}
+              className="flex shrink-0 items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground"
+            >
+              Checkout
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
       )}
