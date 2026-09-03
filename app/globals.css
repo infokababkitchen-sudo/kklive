@@ -177,3 +177,17 @@
 }
 .kk-thumb::-webkit-slider-runnable-track,
 .kk-thumb::-moz-range-track { background: transparent; }
+
+/* Splash progress: runs to full instead of pulsing at half. */
+@keyframes kk-splash-bar {
+  0%   { width: 0%; }
+  60%  { width: 72%; }
+  100% { width: 100%; }
+}
+.kk-splash-bar {
+  width: 0%;
+  animation: kk-splash-bar 1.05s cubic-bezier(0.25, 0.9, 0.3, 1) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kk-splash-bar { animation: none; width: 100%; }
+}
