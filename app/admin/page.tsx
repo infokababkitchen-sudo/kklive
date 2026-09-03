@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import type { Dish, Category } from '@/types/menu'
-import type { DishOverride, MenuOverrides, Variant, VariantKey } from '@/lib/menu-overrides'
+import type { DishOverride, MenuOverrides, Variant, VariantKey, DishMedia } from '@/lib/menu-overrides'
+import { mediaTypeOf } from '@/lib/menu-overrides'
 
 interface DuplicateGroup {
   name: string
@@ -128,7 +129,11 @@ export default function AdminDashboard() {
         setMsg(d.error || 'Photo upload failed.')
         return
       }
-      patch(id, { image: d.url })
+      setEdits(prev => {
+        const cur = prev[String(id)] || {}
+        const list = (cur.media || []).slice(0, 2)
+        return { ...prev, [String(id)]: { ...cur, image: d.url, media: [...list, { url: d.url, type: 'image' }] } }
+      })
       setMsg('Photo attached. Tap Save changes to publish it.')
     } catch {
       setMsg('Photo upload failed.')
@@ -477,7 +482,7 @@ export default function AdminDashboard() {
                       />
                     )}
                     <label className="cursor-pointer rounded-lg border px-3 py-2 text-xs">
-                      {uploading === dish.id ? 'Uploading...' : o.image ? 'Photo lagi' : 'Photo'}
+                      {uploading === dish.id ? 'Uploading...' : 'Upload photo'}
                       <input
                         type="file"
                         accept="image/*"
@@ -489,6 +494,12 @@ export default function AdminDashboard() {
                       />
                     </label>
                   </div>
+
+                  <MediaEditor
+                    media={o.media || []}
+                    fallback={dish.image}
+                    onChange={m => patch(dish.id, { media: m })}
+                  />
                 </div>
               )
             })}
@@ -1284,6 +1295,72 @@ function ReviewsTab({
           <p className="p-6 text-center text-sm text-muted-foreground">No reviews yet.</p>
         )}
       </div>
+    </div>
+  )
+}
+
+
+// -------------------------------------------------------------------- media
+function MediaEditor({
+  media,
+  fallback,
+  onChange,
+}: {
+  media: DishMedia[]
+  fallback: string
+  onChange: (m: DishMedia[]) => void
+}) {
+  const rows = [0, 1, 2]
+
+  function setUrl(i: number, url: string) {
+    const next = [...media]
+    if (!url.trim()) {
+      next.splice(i, 1)
+    } else if (next[i]) {
+      next[i] = { url: url.trim(), type: mediaTypeOf(url) }
+    } else {
+      next.push({ url: url.trim(), type: mediaTypeOf(url) })
+    }
+    onChange(next.slice(0, 3))
+  }
+
+  return (
+    <div className="mt-3 rounded-lg border p-2.5">
+      <p className="text-xs font-semibold">Photos and clips</p>
+      <p className="mt-0.5 text-[11px] text-muted-foreground">
+        Up to 3. Paste image, GIF or MP4 links. Two or more turn the card into a
+        slider. Leave all empty and the bundled photo keeps showing.
+      </p>
+
+      {rows.map(i => {
+        const m = media[i]
+        return (
+          <div key={i} className="mt-2 flex items-center gap-2">
+            <div className="h-10 w-10 shrink-0 overflow-hidden rounded border bg-muted">
+              {m ? (
+                m.type === 'video' ? (
+                  <video src={m.url} muted className="h-full w-full object-cover" />
+                ) : (
+                  <img src={m.url} alt="" className="h-full w-full object-cover" />
+                )
+              ) : i === 0 ? (
+                <img src={fallback} alt="" className="h-full w-full object-cover opacity-50" />
+              ) : null}
+            </div>
+            <input
+              value={m?.url || ''}
+              placeholder={i === 0 ? 'https://... (leave empty to keep current photo)' : 'https://...'}
+              onChange={e => setUrl(i, e.target.value)}
+              className="min-w-0 flex-1 rounded-lg border bg-background p-2 text-xs"
+            />
+            {m && (
+              <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">
+                {m.type}
+              </span>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

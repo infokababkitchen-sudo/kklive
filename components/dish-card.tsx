@@ -5,6 +5,8 @@ import Image from 'next/image'
 import { Plus, Minus, Star, Flame, Leaf, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { useCart, makeLineId, CartAddOn } from '@/context/cart-context'
+import { mediaFor } from '@/lib/menu-overrides'
+import { DishMediaView } from '@/components/dish-media'
 import { useMenu } from '@/hooks/use-menu'
 import { Dish } from '@/types/menu'
 import { cn } from '@/lib/utils'
@@ -94,15 +96,10 @@ export function DishCard({ dish, discountPercent }: DishCardProps) {
         )}
       >
         <div className="relative aspect-square">
-          <Image
-            src={dish.image}
+          <DishMediaView
+            media={mediaFor(dish)}
             alt={dish.name}
-            fill
-            className={cn('object-cover', outOfStock && 'grayscale')}
-            sizes="(max-width: 768px) 50vw, 25vw"
-            onError={e => {
-              ;(e.target as HTMLImageElement).src = '/images/placeholder-dish.jpg'
-            }}
+            className={cn(outOfStock && 'grayscale')}
           />
           <div className="absolute top-2 left-2 flex gap-1">
             {dish.isVeg && (
@@ -267,7 +264,7 @@ function DishSheet({
         <div className="flex shrink-0 items-center justify-between border-b px-4 py-3">
           <div className="flex min-w-0 items-center gap-2">
             <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg">
-              <Image src={dish.image} alt="" fill className="object-cover" sizes="36px" />
+              <DishMediaView media={mediaFor(dish)} alt="" sizes="36px" />
             </div>
             <h2 className="truncate text-base font-bold">{dish.name}</h2>
           </div>

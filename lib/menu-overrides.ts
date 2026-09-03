@@ -22,7 +22,20 @@ export interface DishExtras {
   availableDays?: number[]
 }
 
+export interface DishMedia {
+  url: string
+  /** 'video' covers mp4/webm; gifs are treated as images */
+  type: 'image' | 'video'
+}
+
+/** Works out the kind from the file extension so the admin need not pick. */
+export function mediaTypeOf(url: string): 'image' | 'video' {
+  return /\.(mp4|webm|mov|m4v)(\?|$)/i.test(url.trim()) ? 'video' : 'image'
+}
+
 export interface DishOverride {
+  /** Up to 3 photos, gifs or clips. Falls back to the bundled photo. */
+  media?: DishMedia[]
   name?: string
   description?: string
   price?: number
@@ -101,6 +114,7 @@ export function applyOverrides(base: MenuData, overrides: MenuOverrides | null):
       if (typeof o.halfPrice === 'number') merged.halfPrice = o.halfPrice
       if (typeof o.fullPrice === 'number') merged.fullPrice = o.fullPrice
       if (o.image) merged.image = o.image
+      if (o.media?.length) merged.media = o.media.slice(0, 3)
       if (o.variants?.length) merged.variants = o.variants
       merged.inStock = o.inStock !== false
       merged.hidden = o.hidden === true
@@ -117,6 +131,7 @@ export function applyOverrides(base: MenuData, overrides: MenuOverrides | null):
         ...(o.name ? { name: o.name } : {}),
         ...(typeof o.price === 'number' ? { price: o.price } : {}),
         ...(o.image ? { image: o.image } : {}),
+        ...(o.media?.length ? { media: o.media.slice(0, 3) } : {}),
         ...(o.variants?.length ? { variants: o.variants } : {}),
         inStock: o.inStock !== false,
         hidden: o.hidden === true,
@@ -196,4 +211,15 @@ export function deliveryFeeFor(
     }
   }
   return { fee: subtotal >= freeAbove ? 0 : baseFee, promoRunning: false }
+}
+
+
+/**
+ * What the dish card should show. Admin media wins; otherwise the single
+ * bundled photo, so nothing changes until links are added.
+ */
+export function mediaFor(dish: { image: string; media?: DishMedia[] }): DishMedia[] {
+  const m = (dish.media || []).filter(x => x && x.url && x.url.trim())
+  if (m.length) return m.slice(0, 3)
+  return dish.image ? [{ url: dish.image, type: 'image' }] : []
 }

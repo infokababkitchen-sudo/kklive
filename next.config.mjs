@@ -11,8 +11,11 @@ const nextConfig = {
     imageSizes: [36, 48, 64, 96, 128, 200, 256],
     minimumCacheTTL: 60 * 60 * 24 * 30,
     remotePatterns: [
-      // photos uploaded from the admin dashboard live on Vercel Blob
+      // Photos uploaded from the admin dashboard live on Vercel Blob.
       { protocol: 'https', hostname: '**.public.blob.vercel-storage.com' },
+      // Dish photos pasted as links can come from any CDN, so any https host
+      // is allowed. Only URLs you enter in the admin panel are ever rendered.
+      { protocol: 'https', hostname: '**' },
     ],
   },
   compress: true,

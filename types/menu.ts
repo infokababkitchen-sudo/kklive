@@ -20,6 +20,7 @@ export interface Dish {
   variants?: { key: 'half' | 'full' | 'dry' | 'roll'; label: string; price: number; note?: string }[]
   inStock?: boolean
   hidden?: boolean
+  media?: { url: string; type: 'image' | 'video' }[]
   availableUntil?: string
   availableDays?: number[]
 }
