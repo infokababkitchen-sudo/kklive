@@ -1,69 +1,39 @@
 "use client"
 
-import { useState } from 'react'
-import { 
-  Grid3X3, 
-  Drumstick, 
-  ChefHat, 
-  Leaf, 
-  UtensilsCrossed, 
-  Circle,
-  Flame,
-  Coffee,
-  Plus,
-  Check,
-  X
-} from 'lucide-react'
+import { useEffect, useState } from 'react'
+import Image from 'next/image'
+import { Grid3X3, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Category } from '@/types/menu'
-
-const iconMap: Record<string, React.ReactNode> = {
-  grid: <Grid3X3 className="w-3.5 h-3.5" />,
-  drumstick: <Drumstick className="w-3.5 h-3.5" />,
-  'chef-hat': <ChefHat className="w-3.5 h-3.5" />,
-  leaf: <Leaf className="w-3.5 h-3.5" />,
-  utensils: <UtensilsCrossed className="w-3.5 h-3.5" />,
-  circle: <Circle className="w-3.5 h-3.5" />,
-  flame: <Flame className="w-3.5 h-3.5" />,
-  coffee: <Coffee className="w-3.5 h-3.5" />,
-  plate: <UtensilsCrossed className="w-3.5 h-3.5" />,
-  plus: <Plus className="w-3.5 h-3.5" />,
-}
-
-const iconMapLarge: Record<string, React.ReactNode> = {
-  grid: <Grid3X3 className="w-5 h-5" />,
-  drumstick: <Drumstick className="w-5 h-5" />,
-  'chef-hat': <ChefHat className="w-5 h-5" />,
-  leaf: <Leaf className="w-5 h-5" />,
-  utensils: <UtensilsCrossed className="w-5 h-5" />,
-  circle: <Circle className="w-5 h-5" />,
-  flame: <Flame className="w-5 h-5" />,
-  coffee: <Coffee className="w-5 h-5" />,
-  plate: <UtensilsCrossed className="w-5 h-5" />,
-  plus: <Plus className="w-5 h-5" />,
-}
 
 interface CategoryTabsProps {
   categories: Category[]
   activeCategory: string
-  onCategoryChange: (categoryId: string) => void
+  onCategoryChange: (id: string) => void
   dishCounts: Record<string, number>
 }
 
-export function CategoryTabs({ 
-  categories, 
-  activeCategory, 
+export function CategoryTabs({
+  categories,
+  activeCategory,
   onCategoryChange,
-  dishCounts 
+  dishCounts,
 }: CategoryTabsProps) {
   const [showCategorySheet, setShowCategorySheet] = useState(false)
 
-  const handleCategoryClick = (categoryId: string) => {
-    if (categoryId === 'all') {
-      setShowCategorySheet(true)
-    } else {
-      onCategoryChange(categoryId)
+  // Sheet khuli ho to peeche wala page scroll na ho
+  useEffect(() => {
+    if (!showCategorySheet) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
     }
+  }, [showCategorySheet])
+
+  const handleCategoryClick = (categoryId: string) => {
+    if (categoryId === 'all') setShowCategorySheet(true)
+    else onCategoryChange(categoryId)
   }
 
   const handleSelectCategory = (categoryId: string) => {
@@ -83,18 +53,37 @@ export function CategoryTabs({
                 key={category.id}
                 onClick={() => handleCategoryClick(category.id)}
                 className={cn(
-                  "flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all whitespace-nowrap",
-                  isActive 
-                    ? "bg-primary text-primary-foreground shadow-sm" 
-                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  'flex items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5 text-[11px] font-medium transition-all whitespace-nowrap',
+                  isActive
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
                 )}
               >
-                {iconMap[category.icon]}
+                {category.id === 'all' || !category.image ? (
+                  <span className="flex h-5 w-5 items-center justify-center">
+                    <Grid3X3 className="h-3.5 w-3.5" />
+                  </span>
+                ) : (
+                  <span className="relative h-5 w-5 overflow-hidden rounded-full">
+                    <Image
+                      src={category.image}
+                      alt=""
+                      fill
+                      className="object-cover"
+                      sizes="20px"
+                      onError={e => {
+                        ;(e.target as HTMLImageElement).src = '/images/placeholder-dish.jpg'
+                      }}
+                    />
+                  </span>
+                )}
                 <span>{category.name}</span>
-                <span className={cn(
-                  "text-[9px]",
-                  isActive ? "text-primary-foreground/80" : "text-muted-foreground"
-                )}>
+                <span
+                  className={cn(
+                    'text-[9px]',
+                    isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'
+                  )}
+                >
                   {count}
                 </span>
               </button>
@@ -103,35 +92,34 @@ export function CategoryTabs({
         </div>
       </div>
 
-      {/* Mobile-Optimized Bottom Sheet */}
       {showCategorySheet && (
         <div className="fixed inset-0 z-50">
-          {/* Backdrop */}
-          <div 
-            className="absolute inset-0 bg-black/50 transition-opacity"
+          <div
+            className="absolute inset-0 bg-black/50"
             onClick={() => setShowCategorySheet(false)}
           />
-          
-          {/* Sheet Content */}
-          <div className="absolute bottom-0 left-0 right-0 bg-background rounded-t-2xl max-h-[85vh] overflow-hidden animate-in slide-in-from-bottom duration-300 flex flex-col">
-            {/* Handle */}
-            <div className="flex justify-center pt-3 pb-1 shrink-0">
-              <div className="w-10 h-1 bg-muted-foreground/30 rounded-full" />
+
+          {/*
+            dvh (vh nahi) - mobile browser ka URL bar vh ko galat kar deta hai,
+            isliye aakhri category kat jaati thi.
+          */}
+          <div className="absolute bottom-0 left-0 right-0 flex max-h-[85dvh] flex-col overflow-hidden rounded-t-2xl bg-background animate-in slide-in-from-bottom duration-300">
+            <div className="flex shrink-0 justify-center pt-3 pb-1">
+              <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
             </div>
-            
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+
+            <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
               <h2 className="text-lg font-bold text-foreground">Select Category</h2>
-              <button 
+              <button
                 onClick={() => setShowCategorySheet(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-muted"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-muted"
               >
-                <X className="w-5 h-5 text-muted-foreground" />
+                <X className="h-5 w-5 text-muted-foreground" />
               </button>
             </div>
-            
-            {/* Categories Grid - Scrollable */}
-            <div className="p-4 overflow-y-auto flex-1">
+
+            {/* overscroll-contain: touch scroll sheet ke andar hi rahe */}
+            <div className="flex-1 overflow-y-auto overscroll-contain p-4 pb-[calc(2rem+env(safe-area-inset-bottom))]">
               <div className="grid grid-cols-2 gap-2">
                 {categories.map(category => {
                   const isActive = activeCategory === category.id
@@ -141,27 +129,48 @@ export function CategoryTabs({
                       key={category.id}
                       onClick={() => handleSelectCategory(category.id)}
                       className={cn(
-                        "flex items-center gap-2 p-3 rounded-xl border-2 transition-all text-left",
-                        isActive 
-                          ? "border-primary bg-primary/10" 
-                          : "border-border hover:border-primary/50 hover:bg-muted/50"
+                        'flex items-center gap-2 rounded-xl border-2 p-2.5 text-left transition-all',
+                        isActive
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border hover:border-primary/50 hover:bg-muted/50'
                       )}
                     >
-                      <div className={cn(
-                        "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
-                        isActive ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                      )}>
-                        {iconMapLarge[category.icon]}
-                      </div>
-                      <div className="flex-1 min-w-0">
+                      {category.id === 'all' || !category.image ? (
+                        <div
+                          className={cn(
+                            'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg',
+                            isActive
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted text-muted-foreground'
+                          )}
+                        >
+                          <Grid3X3 className="h-5 w-5" />
+                        </div>
+                      ) : (
+                        <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg">
+                          <Image
+                            src={category.image}
+                            alt=""
+                            fill
+                            className="object-cover"
+                            sizes="44px"
+                            onError={e => {
+                              ;(e.target as HTMLImageElement).src = '/images/placeholder-dish.jpg'
+                            }}
+                          />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1">
-                          <span className={cn(
-                            "font-medium text-xs truncate",
-                            isActive ? "text-primary" : "text-foreground"
-                          )}>
+                          <span
+                            className={cn(
+                              'truncate text-xs font-medium',
+                              isActive ? 'text-primary' : 'text-foreground'
+                            )}
+                          >
                             {category.name}
                           </span>
-                          {isActive && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                          {isActive && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
                         </div>
                         <span className="text-[10px] text-muted-foreground">{count} items</span>
                       </div>
