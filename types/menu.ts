@@ -67,6 +67,7 @@ export interface MenuData {
   addOnGroups?: AddOnGroup[]
   delivery?: { freeUntil?: string; freeAbove?: number; fee?: number }
   panelOrders?: boolean
+  whatsappOrders?: boolean
   banners?: { id: string; title: string; subtitle?: string; image?: string; active: boolean }[]
   restaurantInfo: RestaurantInfo
 }

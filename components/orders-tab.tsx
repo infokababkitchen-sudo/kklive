@@ -95,8 +95,17 @@ function useAlarm() {
     }
   }, [])
 
+  // Any click counts as the gesture browsers require, so the alarm works even
+  // if nobody notices the banner.
+  useEffect(() => {
+    if (armed) return
+    const onAny = () => arm()
+    document.addEventListener('click', onAny, { once: true })
+    return () => document.removeEventListener('click', onAny)
+  }, [armed, arm])
+
   useEffect(() => () => stop(), [stop])
-  return { armed, arm, start, stop }
+  return { armed, arm, start, stop, test: beep }
 }
 
 export function OrdersTab({ adminKey }: { adminKey: string }) {
@@ -107,6 +116,14 @@ export function OrdersTab({ adminKey }: { adminKey: string }) {
   const [err, setErr] = useState('')
   const [loaded, setLoaded] = useState(false)
   const alarm = useAlarm()
+  const seen = useRef<Set<string>>(new Set())
+
+  // ask once; a notification also fires when the tab is in the background
+  useEffect(() => {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {})
+    }
+  }, [])
 
   const load = useCallback(async () => {
     try {
@@ -118,7 +135,29 @@ export function OrdersTab({ adminKey }: { adminKey: string }) {
         return
       }
       const d = await res.json()
-      setOrders(d.orders || [])
+      const incoming: Order[] = d.orders || []
+
+      // notify once per order, and only for ones that arrived after load
+      if (loaded) {
+        for (const o of incoming) {
+          if (o.status !== 'new' || seen.current.has(o.code)) continue
+          seen.current.add(o.code)
+          try {
+            if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+              new Notification('New order ' + o.code, {
+                body: o.customer_name + ' - Rs.' + o.total,
+                tag: o.code,
+              })
+            }
+          } catch {
+            /* notifications are a bonus, never a requirement */
+          }
+        }
+      } else {
+        incoming.forEach(o => seen.current.add(o.code))
+      }
+
+      setOrders(incoming)
       setToday(d.today || null)
       setErr('')
       setLoaded(true)
@@ -161,15 +200,30 @@ export function OrdersTab({ adminKey }: { adminKey: string }) {
 
   return (
     <div className="space-y-3">
-      {!alarm.armed && (
+      {alarm.armed ? (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-green-300 bg-green-50 p-3">
+          <p className="text-sm font-medium text-green-800">
+            Alarm is on. It rings until you accept a new order.
+          </p>
+          <button
+            onClick={() => {
+              alarm.stop()
+              alarm.test()
+            }}
+            className="shrink-0 rounded-lg border border-green-400 px-3 py-1.5 text-xs text-green-800"
+          >
+            Test
+          </button>
+        </div>
+      ) : (
         <button
           onClick={alarm.arm}
           className="w-full rounded-xl border border-amber-300 bg-amber-50 p-3 text-left"
         >
           <p className="text-sm font-semibold text-amber-900">Turn on the order alarm</p>
           <p className="text-xs text-amber-800">
-            Browsers only allow sound after a tap. Tap once and it will ring on every new
-            order until you accept it.
+            Browsers only allow sound after a tap. Tap here, or anywhere on this page,
+            and it will ring on every new order until you accept.
           </p>
         </button>
       )}

@@ -42,6 +42,8 @@ export default function AdminDashboard() {
   const [banners, setBanners] = useState<any[]>([])
   const [delivery, setDelivery] = useState<any>({})
   const [panelOrders, setPanelOrders] = useState(false)
+  const [dirtyOther, setDirtyOther] = useState(false)
+  const [whatsappOrders, setWhatsappOrders] = useState(true)
   const [reviews, setReviews] = useState<any | null>(null)
 
   const [search, setSearch] = useState('')
@@ -91,6 +93,7 @@ export default function AdminDashboard() {
       setBanners(o?.banners || [])
       setDelivery(o?.delivery || {})
       setPanelOrders(o?.panelOrders === true)
+      setWhatsappOrders(o?.whatsappOrders !== false)
       const ri = o?.restaurantInfo || {}
       setInfo({
         phone: ri.phone ?? d.restaurantInfo?.phone ?? '',
@@ -111,6 +114,7 @@ export default function AdminDashboard() {
     edits?: Record<string, DishOverride>
     newDishes?: Dish[]
     panelOrders?: boolean
+    whatsappOrders?: boolean
   }) {
     setBusy(true)
     setMsg('')
@@ -124,6 +128,7 @@ export default function AdminDashboard() {
           banners,
           delivery,
           panelOrders: next?.panelOrders ?? panelOrders,
+          whatsappOrders: next?.whatsappOrders ?? whatsappOrders,
           restaurantInfo: {
             phone: info.phone,
             whatsapp: info.whatsapp,
@@ -132,6 +137,7 @@ export default function AdminDashboard() {
           },
         }),
       })
+      if (res.ok) setDirtyOther(false)
       setMsg(res.ok ? 'Saved. Live on the site now.' : (await res.json().catch(() => ({}))).error || 'Save failed.')
     } catch {
       setMsg('Save failed. Check your connection.')
@@ -185,7 +191,21 @@ export default function AdminDashboard() {
     [allDishes, search, cat]
   )
 
-  const changed = Object.values(edits).filter(o => o && Object.keys(o).length).length
+  // An entry like { inStock: true } on a dish that is already in stock is not a
+  // change. Counting those was what showed "77 edited" after "All in stock".
+  const meaningful = (id: string, o: DishOverride) => {
+    if (!o) return false
+    const base = allDishes.find(d => String(d.id) === id)
+    return Object.entries(o).some(([k, v]) => {
+      if (v === undefined || v === '') return false
+      if (k === 'inStock') return v === false
+      if (k === 'hidden') return v === true
+      if (Array.isArray(v)) return v.length > 0
+      return base ? (base as any)[k] !== v : true
+    })
+  }
+  const changed = Object.entries(edits).filter(([id, o]) => meaningful(id, o)).length
+  const dirty = changed > 0 || dirtyOther
   const isPlaceholderWhatsapp = /^9?1?0{6,}$/.test((info.whatsapp || '').replace(/\D/g, ''))
 
   // ------------------------------------------------------------ locked
@@ -269,7 +289,7 @@ export default function AdminDashboard() {
         <p className="text-sm font-semibold text-primary">Kabab Kitchen</p>
         <h1 className="text-2xl font-bold">Admin dashboard</h1>
         <p className="text-sm text-muted-foreground">
-          {allDishes.length} dishes · {changed} edited
+          {allDishes.length} dishes{changed > 0 ? ' · ' + changed + ' edited' : ''}
         </p>
       </div>
 
@@ -334,7 +354,7 @@ export default function AdminDashboard() {
       )}
 
       {tab === 'banners' && (
-        <BannersTab banners={banners} setBanners={setBanners} adminKey={key} />
+        <BannersTab banners={banners} setBanners={(b: any[]) => { setDirtyOther(true); setBanners(b) }} adminKey={key} />
       )}
 
       {tab === 'reviews' && <ReviewsTab data={reviews} adminKey={key} onLoad={setReviews} />}
@@ -363,6 +383,7 @@ export default function AdminDashboard() {
                   onClick={() => {
                     const d = new Date()
                     d.setMonth(d.getMonth() + (months as number))
+                    setDirtyOther(true)
                     setDelivery({ ...delivery, freeUntil: d.toISOString().slice(0, 10) })
                   }}
                   className="rounded-full border px-3 py-1.5 text-xs"
@@ -371,7 +392,7 @@ export default function AdminDashboard() {
                 </button>
               ))}
               <button
-                onClick={() => setDelivery({ ...delivery, freeUntil: '' })}
+                onClick={() => { setDirtyOther(true); setDelivery({ ...delivery, freeUntil: '' }) }}
                 className="rounded-full border px-3 py-1.5 text-xs text-red-600"
               >
                 Stop promo
@@ -385,7 +406,7 @@ export default function AdminDashboard() {
               <input
                 type="date"
                 value={delivery.freeUntil || ''}
-                onChange={e => setDelivery({ ...delivery, freeUntil: e.target.value })}
+                onChange={e => { setDirtyOther(true); setDelivery({ ...delivery, freeUntil: e.target.value }) }}
                 className="mt-1 w-full rounded-lg border bg-background p-2 text-sm"
               />
             </label>
@@ -448,7 +469,10 @@ export default function AdminDashboard() {
               <input
                 value={info[k] || ''}
                 placeholder={ph}
-                onChange={e => setInfo(prev => ({ ...prev, [k]: e.target.value }))}
+                onChange={e => {
+                  setDirtyOther(true)
+                  setInfo(prev => ({ ...prev, [k]: e.target.value }))
+                }}
                 className="mt-1 w-full rounded-xl border bg-background p-2.5 text-sm"
               />
             </label>
@@ -477,6 +501,26 @@ export default function AdminDashboard() {
               </span>
             </span>
           </label>
+          <label className="mb-3 flex items-start gap-2 rounded-xl border p-3">
+            <input
+              type="checkbox"
+              checked={whatsappOrders}
+              onChange={e => {
+                const on = e.target.checked
+                setWhatsappOrders(on)
+                save({ whatsappOrders: on } as any)
+              }}
+              className="mt-0.5"
+            />
+            <span className="text-xs">
+              <span className="block text-sm font-medium">Also open WhatsApp at checkout</span>
+              <span className="text-muted-foreground">
+                Leave this on until you trust the panel. If the tab is closed or the
+                internet drops, WhatsApp is what still reaches your phone.
+              </span>
+            </span>
+          </label>
+
           {panelOrders ? (
             <OrdersTab adminKey={key} />
           ) : (
@@ -638,7 +682,7 @@ export default function AdminDashboard() {
         <NewDishTab
           categories={categories}
           newDishes={newDishes}
-          setNewDishes={setNewDishes}
+          setNewDishes={(f: any) => { setDirtyOther(true); setNewDishes(f) }}
           onRemove={id => setNewDishes(prev => prev.filter(d => d.id !== id))}
         />
       )}
@@ -646,13 +690,17 @@ export default function AdminDashboard() {
       <div className="fixed inset-x-0 bottom-0 border-t bg-background p-3">
         <div className="mx-auto flex max-w-3xl items-center gap-3">
           {msg && <p className="flex-1 text-xs text-muted-foreground">{msg}</p>}
-          <button
-            onClick={() => save()}
-            disabled={busy}
-            className="ml-auto rounded-xl bg-primary px-6 py-3 font-semibold text-primary-foreground disabled:opacity-50"
-          >
-            {busy ? 'Saving...' : 'Save changes'}
-          </button>
+          {dirty ? (
+            <button
+              onClick={() => save()}
+              disabled={busy}
+              className="ml-auto rounded-xl bg-primary px-6 py-3 font-semibold text-primary-foreground disabled:opacity-50"
+            >
+              {busy ? 'Saving...' : 'Save ' + changed + (changed === 1 ? ' change' : ' changes')}
+            </button>
+          ) : (
+            <span className="ml-auto text-xs text-muted-foreground">No unsaved changes</span>
+          )}
         </div>
       </div>
     </main>

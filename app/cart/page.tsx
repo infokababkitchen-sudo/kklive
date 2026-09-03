@@ -12,6 +12,7 @@ import menuData from '@/data/menu.json'
 import { useMenu } from '@/hooks/use-menu'
 import { deliveryFeeFor } from '@/lib/menu-overrides'
 import { CouponSheet } from '@/components/coupon-sheet'
+import { rememberOrder } from '@/components/order-tracker'
 import { ReviewPrompt } from '@/components/review-prompt'
 import couponsData from '@/data/coupons.json'
 import { cn } from '@/lib/utils'
@@ -238,7 +239,12 @@ export default function CartPage() {
             cookingRequest: i.cookingRequest || null,
           })),
         }),
-      }).catch(() => {})
+      })
+        .then(r => r.json())
+        .then(d => {
+          if (d?.code) rememberOrder(d.code)
+        })
+        .catch(() => {})
     }
 
     // Save the customer so they need not retype next time, and for marketing
@@ -254,8 +260,11 @@ export default function CartPage() {
       }),
     }).catch(() => {})
 
-    const whatsappUrl = `https://wa.me/${liveMenu.restaurantInfo.whatsapp}?text=${encodeURIComponent(message)}`
-    window.open(whatsappUrl, '_blank')
+    // The owner can switch WhatsApp off once the panel is trusted.
+    if (liveMenu.whatsappOrders !== false) {
+      const whatsappUrl = `https://wa.me/${liveMenu.restaurantInfo.whatsapp}?text=${encodeURIComponent(message)}`
+      window.open(whatsappUrl, '_blank')
+    }
   }
 
   const handleCODOrder = () => {

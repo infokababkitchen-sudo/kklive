@@ -78,6 +78,8 @@ export interface DeliveryPromo {
 export interface MenuOverrides {
   /** true = orders also land in the admin Orders panel, not only WhatsApp */
   panelOrders?: boolean
+  /** false = stop opening WhatsApp once the panel is trusted */
+  whatsappOrders?: boolean
   delivery?: DeliveryPromo
   banners?: Banner[]
   restaurantInfo?: RestaurantInfoOverride
@@ -144,6 +146,7 @@ export function applyOverrides(base: MenuData, overrides: MenuOverrides | null):
   const banners = overrides.banners?.filter(b => b.active) ?? []
   const delivery = overrides.delivery
   const panelOrders = overrides.panelOrders === true
+  const whatsappOrders = overrides.whatsappOrders !== false
 
   const restaurantInfo = overrides.restaurantInfo
     ? {
@@ -160,6 +163,7 @@ export function applyOverrides(base: MenuData, overrides: MenuOverrides | null):
     banners,
     delivery,
     panelOrders,
+    whatsappOrders,
     restaurantInfo,
   }
 }

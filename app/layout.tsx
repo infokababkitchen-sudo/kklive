@@ -1,15 +1,22 @@
 import type { Metadata, Viewport } from 'next'
-// stub
+import { Poppins } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { CartProvider } from '@/context/cart-context'
 import { SplashScreen } from '@/components/splash-screen'
 import { CartOverlay } from '@/components/cart-overlay'
+import { OrderTracker } from '@/components/order-tracker'
 import Script from 'next/script'
 import { StructuredData } from '@/components/structured-data'
 import { site } from '@/lib/site-config'
 import './globals.css'
 
-const poppins = { variable: '' };
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['400', '600', '700'],
+  variable: '--font-poppins',
+  display: 'swap',
+  preload: true,
+})
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -82,6 +89,7 @@ export default function RootLayout({
           {children}
           <SplashScreen />
           <CartOverlay />
+          <OrderTracker />
         </CartProvider>
         <Analytics />
         {site.gaId && (
