@@ -12,6 +12,7 @@ import { useCart } from '@/context/cart-context'
 import { useMenu } from '@/hooks/use-menu'
 import { MenuData, Dish } from '@/types/menu'
 import Image from 'next/image'
+import { Minus } from 'lucide-react'
 
 
 export default function MenuPage() {
@@ -20,7 +21,7 @@ export default function MenuPage() {
   const [activeFilters, setActiveFilters] = useState<FilterType[]>([])
   const [showSurpriseMe, setShowSurpriseMe] = useState(false)
   const [hasShownSurpriseMe, setHasShownSurpriseMe] = useState(false)
-  const { items } = useCart()
+  const { items, removeItem } = useCart()
 
   // Show surprise me popup after 3 seconds on first load
   useEffect(() => {
@@ -100,7 +101,7 @@ export default function MenuPage() {
         <div className="fixed bottom-20 left-0 right-0 z-40 bg-background border-t border-border">
           <div className="flex gap-2 px-4 py-2 overflow-x-auto scrollbar-hide">
             {items.slice(0, 5).map((item, index) => (
-              <div key={`${item.id}-${item.size}-${index}`} className="relative shrink-0">
+              <div key={item.lineId} className="relative shrink-0 pt-2 pr-2">
                 <div className="w-14 h-14 rounded-lg overflow-hidden border-2 border-primary">
                   <Image
                     src={item.image}
@@ -110,9 +111,16 @@ export default function MenuPage() {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <span className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-primary-foreground text-xs font-bold rounded-full flex items-center justify-center">
+                <span className="absolute bottom-0 left-0 min-w-5 h-5 px-1 bg-primary text-primary-foreground text-xs font-bold rounded-full flex items-center justify-center">
                   {item.quantity}
                 </span>
+                <button
+                  onClick={() => removeItem(item.lineId)}
+                  aria-label={`Remove ${item.name}`}
+                  className="absolute top-0 right-0 w-5 h-5 rounded-full bg-foreground text-background flex items-center justify-center shadow"
+                >
+                  <Minus className="w-3 h-3" />
+                </button>
               </div>
             ))}
             {items.length > 5 && (

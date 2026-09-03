@@ -156,9 +156,16 @@ export default function CartPage() {
 
   const sendWhatsAppOrder = (paymentStatus: string) => {
     // Build order items
-    const orderItems = items.map(item => 
-      `  ${item.name}${item.size ? ` (${item.size})` : ''} x${item.quantity} = Rs.${item.price * item.quantity}`
-    ).join('\n')
+    const orderItems = items.map(item => {
+      let line = `  ${item.name}${item.size ? ` (${item.size})` : ''} x${item.quantity} = Rs.${item.price * item.quantity}`
+      if (item.addOns?.length) {
+        line += `\n     + ${item.addOns.map(a => `${a.name} (Rs.${a.price})`).join(', ')}`
+      }
+      if (item.cookingRequest) {
+        line += `\n     * Request: ${item.cookingRequest}`
+      }
+      return line
+    }).join('\n')
     
     // Build the WhatsApp message
     let message = `🍢 *NEW ORDER - KABAB KITCHEN* 🍢\n\n`
@@ -621,7 +628,7 @@ export default function CartPage() {
                       )}
                     </div>
                     <button 
-                      onClick={() => removeItem(item.id, item.size)}
+                      onClick={() => removeItem(item.lineId)}
                       className="text-muted-foreground hover:text-destructive transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -630,14 +637,14 @@ export default function CartPage() {
                   <div className="flex items-center justify-between mt-2">
                     <div className="flex items-center gap-2 bg-muted rounded-lg">
                       <button
-                        onClick={() => updateQuantity(item.id, item.quantity - 1, item.size)}
+                        onClick={() => updateQuantity(item.lineId, item.quantity - 1)}
                         className="w-8 h-8 flex items-center justify-center text-foreground hover:bg-border rounded-l-lg transition-colors"
                       >
                         <Minus className="w-4 h-4" />
                       </button>
                       <span className="w-6 text-center font-medium text-sm">{item.quantity}</span>
                       <button
-                        onClick={() => updateQuantity(item.id, item.quantity + 1, item.size)}
+                        onClick={() => updateQuantity(item.lineId, item.quantity + 1)}
                         className="w-8 h-8 flex items-center justify-center text-foreground hover:bg-border rounded-r-lg transition-colors"
                       >
                         <Plus className="w-4 h-4" />
@@ -829,7 +836,7 @@ export default function CartPage() {
               Currently unavailable: {soldOut.map(i => i.name).join(', ')}
             </p>
             <button
-              onClick={() => soldOut.forEach(i => removeItem(i.id, i.size))}
+              onClick={() => soldOut.forEach(i => removeItem(i.lineId))}
               className="mt-1 text-xs font-semibold text-red-700 underline"
             >
               Remove from cart

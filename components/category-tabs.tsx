@@ -93,7 +93,7 @@ export function CategoryTabs({
       </div>
 
       {showCategorySheet && (
-        <div className="fixed inset-0 z-50">
+        <div className="fixed inset-0 z-[70]">
           <div
             className="absolute inset-0 bg-black/50"
             onClick={() => setShowCategorySheet(false)}
@@ -119,7 +119,7 @@ export function CategoryTabs({
             </div>
 
             {/* overscroll-contain: touch scroll sheet ke andar hi rahe */}
-            <div className="flex-1 overflow-y-auto overscroll-contain p-4 pb-[calc(2rem+env(safe-area-inset-bottom))]">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-4 pb-[calc(7rem+env(safe-area-inset-bottom))]">
               <div className="grid grid-cols-2 gap-2">
                 {categories.map(category => {
                   const isActive = activeCategory === category.id
