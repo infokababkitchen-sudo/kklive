@@ -231,7 +231,6 @@ function DishSheet({
       const cur = prev[group.id] || []
       const has = cur.some(o => o.id === option.id)
       if (has) return { ...prev, [group.id]: cur.filter(o => o.id !== option.id) }
-      if (cur.length >= group.maxSelect) return prev
       return { ...prev, [group.id]: [...cur, option] }
     })
   }
@@ -325,22 +324,15 @@ function DishSheet({
               <section key={g.id} className="rounded-xl border">
                 <div className="border-b px-3 py-2">
                   <p className="text-sm font-semibold">{g.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Optional &middot; up to {g.maxSelect}
-                  </p>
+                  <p className="text-xs text-muted-foreground">Optional</p>
                 </div>
                 {g.options.map(o => {
                   const on = cur.some(x => x.id === o.id)
-                  const full = !on && cur.length >= g.maxSelect
                   return (
                     <button
                       key={o.id}
                       onClick={() => toggle(g, o)}
-                      disabled={full}
-                      className={cn(
-                        'flex w-full items-center justify-between gap-3 border-b px-3 py-2.5 text-left last:border-b-0',
-                        full && 'opacity-40'
-                      )}
+                      className="flex w-full items-center justify-between gap-3 border-b px-3 py-2.5 text-left last:border-b-0"
                     >
                       <span className="flex min-w-0 items-center gap-2">
                         {o.isVeg && <Leaf className="h-3 w-3 shrink-0 text-green-600" />}

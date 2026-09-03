@@ -14,13 +14,26 @@ interface SurpriseMePopupProps {
   onClose: () => void
 }
 
-type CuisineType = 'starters' | 'main-course' | 'desserts' | 'chinese'
+type CuisineType = 'starters' | 'main-course' | 'desserts' | 'chinese' | 'beverages'
 
 const CUISINE_MAP: Record<CuisineType, string[]> = {
-  'starters': ['momos', 'kabab', 'pure-veg', 'chef-specials'],
-  'main-course': ['non-veg-main', 'chef-specials', 'chaap-chinese', 'thali'],
-  'desserts': ['add-ons', 'beverages'],
-  'chinese': ['chaap-chinese', 'kfc'],
+  'starters': [
+    'kabab-khazana',
+    'authentic-kurkure-momos',
+    'kurkure-momos',
+    'soya-chaap',
+    'crispy-chicken-specials',
+  ],
+  'main-course': [
+    'non-veg-main-course',
+    'pure-veg-main-course',
+    'chef-s-specials',
+    'special-veg-thalis',
+    'non-veg-thalis',
+  ],
+  'desserts': ['rice-roti-add-ons'],
+  'chinese': ['chinese-delights'],
+  'beverages': ['beverages'],
 }
 
 const CUISINE_LABELS: Record<CuisineType, string> = {
@@ -28,32 +41,36 @@ const CUISINE_LABELS: Record<CuisineType, string> = {
   'main-course': 'Main Course',
   'desserts': 'Desserts',
   'chinese': 'Chinese',
+  'beverages': 'Beverages',
 }
 
 export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
   const data = useMenu() as MenuData & { coupons: any[] }
   const { addItem } = useCart()
   const [step, setStep] = useState(1)
-  const [priceRange, setPriceRange] = useState(1000)
+  const [minPrice, setMinPrice] = useState(50)
+  const [maxPrice, setMaxPrice] = useState(600)
   const [selectedCoupon, setSelectedCoupon] = useState<any>(null)
   const [selectedCuisine, setSelectedCuisine] = useState<CuisineType | null>(null)
   const [suggestedDishes, setSuggestedDishes] = useState<Dish[]>([])
 
   const priceOf = (d: Dish) =>
     d.price ?? d.variants?.[0]?.price ?? d.fullPrice ?? d.halfPrice ?? 0
-  const affordable = data.dishes.filter(d => priceOf(d) > 0 && priceOf(d) <= priceRange)
+  const affordable = data.dishes.filter(
+    d => priceOf(d) > 0 && priceOf(d) >= minPrice && priceOf(d) <= maxPrice
+  )
   const allPrices = data.dishes.map(priceOf).filter(p => p > 0)
   const cheapest = affordable.length ? Math.min(...affordable.map(priceOf)) : 0
   const dearest = affordable.length ? Math.max(...affordable.map(priceOf)) : 0
   const minDishPrice = allPrices.length ? Math.min(...allPrices) : 0
   const availableCoupons = (couponsData.coupons as any[]).filter(
-    c => c.isActive && c.minOrderValue <= priceRange
+    c => c.isActive && c.minOrderValue <= maxPrice
   )
 
   // Get available coupons based on price range
   const getAvailableCoupons = () => {
     return (couponsData.coupons as any[]).filter(
-      c => c.isActive && c.minOrderValue <= priceRange
+      c => c.isActive && c.minOrderValue <= maxPrice
     )
   }
 
@@ -61,20 +78,17 @@ export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
     const categoryIds = CUISINE_MAP[cuisine]
     
     let filtered = data.dishes.filter(dish => {
-      const price = dish.fullPrice || dish.price || 0
-      return price <= maxPrice && categoryIds.includes(dish.category)
+      const price = priceOf(dish)
+      return price > 0 && price >= minPrice && price <= maxPrice &&
+        categoryIds.includes(dish.category)
     })
 
     return filtered.sort(() => Math.random() - 0.5)
   }
 
-  const handlePriceRangeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPriceRange(Number(e.target.value))
-  }
-
-  const handleSelectCuisine = (cuisine: CuisineType) => {
+    const handleSelectCuisine = (cuisine: CuisineType) => {
     setSelectedCuisine(cuisine)
-    const dishes = getDishesForCuisine(cuisine, priceRange)
+    const dishes = getDishesForCuisine(cuisine, maxPrice)
     const selected = dishes.slice(0, 2)
     
     if (selected.length > 0) {
@@ -130,7 +144,7 @@ export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
           <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-gradient-to-r from-primary/10 to-transparent">
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-primary" />
-              <h2 className="text-xl font-bold text-foreground">Surprise Me!</h2>
+              <h2 className="text-xl font-bold text-foreground">Kuch Bhi</h2>
             </div>
             <Button variant="ghost" size="icon" onClick={onClose}>
               <X className="w-5 h-5" />
@@ -141,59 +155,43 @@ export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
           <div className="p-6 space-y-6">
             <div className="text-center space-y-2">
               <h3 className="text-lg font-bold text-foreground">Select Your Budget</h3>
-              <p className="text-sm text-muted-foreground">Choose your price range (₹1 - ₹2000)</p>
             </div>
 
-            {/* Price Slider */}
-            <div className="space-y-4">
-              <input
-                type="range"
-                min="1"
-                max="2000"
-                value={priceRange}
-                onChange={handlePriceRangeChange}
-                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-              />
-              
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <span className="text-sm text-muted-foreground">Rs.1</span>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-primary">Rs.{priceRange}</p>
-                  <p className="text-xs text-muted-foreground">Your budget</p>
-                </div>
-                <span className="text-sm text-muted-foreground">Rs.2000</span>
+            {/* Two-handle range bar */}
+            <div className="space-y-3">
+              <div className="flex items-end justify-between px-1">
+                <span className="text-xs text-muted-foreground">Rs.1</span>
+                <span className="text-base font-bold text-primary">
+                  Rs.{minPrice} &ndash; Rs.{maxPrice}
+                </span>
+                <span className="text-xs text-muted-foreground">Rs.2000</span>
               </div>
 
-              <div className="rounded-lg border p-3">
-                <p className="text-xs font-semibold text-foreground">
-                  {affordable.length} dishes within Rs.{priceRange}
-                  {availableCoupons.length > 0 &&
-                    ' · ' + availableCoupons.length + ' coupon(s) unlocked'}
-                </p>
-                {affordable.length > 0 ? (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Cheapest Rs.{cheapest} &middot; dearest you can afford Rs.{dearest}
-                  </p>
-                ) : (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Nothing this cheap. Try Rs.{minDishPrice} or more.
-                  </p>
-                )}
-              </div>
-
-              <div className="flex flex-wrap gap-1.5">
-                {[150, 300, 500, 800, 1200].map(v => (
-                  <button
-                    key={v}
-                    onClick={() => setPriceRange(v)}
-                    className={
-                      'rounded-full border px-3 py-1 text-xs ' +
-                      (priceRange === v ? 'border-primary text-primary' : 'text-muted-foreground')
-                    }
-                  >
-                    Rs.{v}
-                  </button>
-                ))}
+              <div className="relative h-6">
+                <div className="absolute top-1/2 h-1.5 w-full -translate-y-1/2 rounded-full bg-muted" />
+                <div
+                  className="absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-primary"
+                  style={{
+                    left: ((minPrice - 1) / 1999) * 100 + '%',
+                    right: 100 - ((maxPrice - 1) / 1999) * 100 + '%',
+                  }}
+                />
+                <input
+                  type="range"
+                  min="1"
+                  max="2000"
+                  value={minPrice}
+                  onChange={e => setMinPrice(Math.min(Number(e.target.value), maxPrice - 10))}
+                  className="kk-thumb absolute inset-0 h-6 w-full appearance-none bg-transparent"
+                />
+                <input
+                  type="range"
+                  min="1"
+                  max="2000"
+                  value={maxPrice}
+                  onChange={e => setMaxPrice(Math.max(Number(e.target.value), minPrice + 10))}
+                  className="kk-thumb absolute inset-0 h-6 w-full appearance-none bg-transparent"
+                />
               </div>
             </div>
 
@@ -252,7 +250,7 @@ export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
                             {coupon.code}
                           </span>
                           <span className="text-xs text-primary font-semibold">
-                            {formatCouponSavings(coupon, priceRange)}
+                            {formatCouponSavings(coupon, maxPrice)}
                           </span>
                         </div>
                       </div>
@@ -313,7 +311,7 @@ export function SurpriseMePopup({ onClose }: SurpriseMePopupProps) {
           {/* Content */}
           <div className="p-6 space-y-4">
             <div className="space-y-2 p-3 bg-muted rounded-lg">
-              <p className="text-xs text-muted-foreground">Budget: <span className="font-bold text-primary">₹{priceRange}</span></p>
+              <p className="text-xs text-muted-foreground">Budget: <span className="font-bold text-primary">Rs.{minPrice} - Rs.{maxPrice}</span></p>
               {selectedCoupon && (
                 <p className="text-xs text-muted-foreground">Coupon: <span className="font-bold text-primary">{selectedCoupon.code}</span></p>
               )}

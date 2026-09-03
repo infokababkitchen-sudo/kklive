@@ -10,6 +10,7 @@ import { useCart } from '@/context/cart-context'
 import { BottomNav } from '@/components/bottom-nav'
 import menuData from '@/data/menu.json'
 import { useMenu } from '@/hooks/use-menu'
+import { ReviewPrompt } from '@/components/review-prompt'
 import couponsData from '@/data/coupons.json'
 import { cn } from '@/lib/utils'
 
@@ -56,6 +57,7 @@ export default function CartPage() {
   const [showCoupons, setShowCoupons] = useState(false)
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>('cart')
   const [marketingConsent, setMarketingConsent] = useState(false)
+  const [showReview, setShowReview] = useState(false)
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails>({
     name: '',
     phone: '',
@@ -216,6 +218,7 @@ export default function CartPage() {
     sendWhatsAppOrder('Cash on Delivery')
     clearCart()
     setCheckoutStep('cart')
+    setShowReview(true)
   }
 
   const handleUPIPayment = () => {
@@ -226,6 +229,7 @@ export default function CartPage() {
     sendWhatsAppOrder('UPI - payment in process')
     clearCart()
     setCheckoutStep('cart')
+    setShowReview(true)
   }
 
   const availableCoupons = couponsData.coupons.filter(c => c.isActive) as Coupon[]
@@ -268,6 +272,9 @@ export default function CartPage() {
         </div>
         
         <BottomNav />
+      {showReview && (
+        <ReviewPrompt name={customerDetails.name} onClose={() => setShowReview(false)} />
+      )}
       </div>
     )
   }
@@ -873,6 +880,9 @@ export default function CartPage() {
       </div>
 
       <BottomNav />
+      {showReview && (
+        <ReviewPrompt name={customerDetails.name} onClose={() => setShowReview(false)} />
+      )}
     </div>
   )
 }

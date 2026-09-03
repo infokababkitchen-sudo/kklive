@@ -7,7 +7,7 @@ import { useCart } from '@/context/cart-context'
 import { Button } from '@/components/ui/button'
 
 // Set to true when you add your logo.png to /public/images/
-const HAS_CUSTOM_LOGO = false
+const HAS_CUSTOM_LOGO = true
 
 export function Header() {
   const { getItemCount } = useCart()

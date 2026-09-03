@@ -1,93 +1,122 @@
 "use client"
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useMenu } from '@/hooks/use-menu'
 
-interface CarouselSlide {
-  id: number
+interface Slide {
+  id: string
   title: string
+  subtitle?: string
+  image?: string
 }
 
-const slides: CarouselSlide[] = [
-  { id: 1, title: 'Special Offer 1' },
-  { id: 2, title: 'Best Sellers' },
-  { id: 3, title: 'New Arrivals' },
-  { id: 4, title: 'Limited Time' },
-  { id: 5, title: 'Trending Now' },
+/** Used until the owner adds banners in the admin dashboard. */
+const FALLBACK: Slide[] = [
+  { id: 'f1', title: 'Special Offer', subtitle: 'Featured collection' },
+  { id: 'f2', title: 'Best Sellers', subtitle: 'Featured collection' },
+  { id: 'f3', title: 'New Arrivals', subtitle: 'Featured collection' },
 ]
 
 export function FeaturedCarousel() {
-  const [currentSlide, setCurrentSlide] = useState(0)
+  const menu = useMenu()
+  const fromAdmin = (menu.banners || []).filter(b => b.active)
+  const slides: Slide[] = fromAdmin.length ? fromAdmin : FALLBACK
+
+  const [current, setCurrent] = useState(0)
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length)
-    }, 5000)
-    return () => clearInterval(interval)
-  }, [])
+    setCurrent(0)
+  }, [slides.length])
 
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % slides.length)
-  }
+  useEffect(() => {
+    if (slides.length < 2) return
+    const t = setInterval(() => setCurrent(p => (p + 1) % slides.length), 5000)
+    return () => clearInterval(t)
+  }, [slides.length])
 
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)
-  }
+  const next = () => setCurrent(p => (p + 1) % slides.length)
+  const prev = () => setCurrent(p => (p - 1 + slides.length) % slides.length)
 
   return (
     <section className="px-4 py-4">
-      <div className="relative bg-gradient-to-br from-primary/10 to-accent/10 rounded-2xl overflow-hidden aspect-video">
-        {/* Carousel Slides */}
-        <div className="relative w-full h-full flex items-center justify-center">
-          {slides.map((slide, index) => (
+      <div className="relative aspect-video overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10">
+        <div className="relative h-full w-full">
+          {slides.map((slide, i) => (
             <div
               key={slide.id}
               className={cn(
-                "absolute inset-0 flex items-center justify-center transition-opacity duration-500 ease-in-out",
-                index === currentSlide ? "opacity-100" : "opacity-0"
+                'absolute inset-0 transition-opacity duration-500 ease-in-out',
+                i === current ? 'opacity-100' : 'opacity-0'
               )}
             >
-              <div className="text-center space-y-2">
-                <div className="text-6xl font-bold text-primary opacity-20">
-                  {slide.id}
+              {slide.image ? (
+                <>
+                  <Image
+                    src={slide.image}
+                    alt={slide.title}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 640px"
+                    onError={e => {
+                      ;(e.target as HTMLImageElement).style.display = 'none'
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-4">
+                    <h3 className="text-xl font-bold text-white drop-shadow">{slide.title}</h3>
+                    {slide.subtitle && (
+                      <p className="text-sm text-white/85 drop-shadow">{slide.subtitle}</p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <div className="space-y-1 text-center">
+                    <h3 className="text-2xl font-bold text-foreground">{slide.title}</h3>
+                    {slide.subtitle && (
+                      <p className="text-muted-foreground">{slide.subtitle}</p>
+                    )}
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold text-foreground">{slide.title}</h3>
-                <p className="text-muted-foreground">Featured collection</p>
-              </div>
+              )}
             </div>
           ))}
         </div>
 
-        {/* Navigation Buttons */}
-        <button
-          onClick={prevSlide}
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/80 hover:bg-white text-foreground flex items-center justify-center transition-colors"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <button
-          onClick={nextSlide}
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/80 hover:bg-white text-foreground flex items-center justify-center transition-colors"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
-
-        {/* Dots Indicator */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-          {slides.map((_, index) => (
+        {slides.length > 1 && (
+          <>
             <button
-              key={index}
-              onClick={() => setCurrentSlide(index)}
-              className={cn(
-                "w-2 h-2 rounded-full transition-all",
-                index === currentSlide 
-                  ? "w-6 bg-primary" 
-                  : "bg-white/50 hover:bg-white/75"
-              )}
-            />
-          ))}
-        </div>
+              onClick={prev}
+              aria-label="Previous"
+              className="absolute left-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-background/85 shadow"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              onClick={next}
+              aria-label="Next"
+              className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-background/85 shadow"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+            <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1.5">
+              {slides.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrent(i)}
+                  aria-label={'Slide ' + (i + 1)}
+                  className={cn(
+                    'h-1.5 rounded-full transition-all',
+                    i === current ? 'w-6 bg-primary' : 'w-1.5 bg-foreground/25'
+                  )}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </section>
   )

@@ -26,11 +26,27 @@ export default function MenuPage() {
   const router = useRouter()
 
   // Show surprise me popup after 3 seconds on first load
+  // Show the Kuch Bhi popup once per visit. React state alone resets on every
+  // navigation back to the home page, so remember it for the session.
   useEffect(() => {
+    if (hasShownSurpriseMe) return
+    let seen = false
+    try {
+      seen = sessionStorage.getItem('kk-kuchbhi-seen') === '1'
+    } catch {
+      seen = false
+    }
+    if (seen) {
+      setHasShownSurpriseMe(true)
+      return
+    }
     const timer = setTimeout(() => {
-      if (!hasShownSurpriseMe) {
-        setShowSurpriseMe(true)
-        setHasShownSurpriseMe(true)
+      setShowSurpriseMe(true)
+      setHasShownSurpriseMe(true)
+      try {
+        sessionStorage.setItem('kk-kuchbhi-seen', '1')
+      } catch {
+        // private mode: it will simply show again next load
       }
     }, 3000)
     return () => clearTimeout(timer)

@@ -57,7 +57,7 @@ export function BottomNav() {
               <Wand2 className="kk-wand relative h-5 w-5 text-primary" />
               <span className="kk-spark absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full bg-primary" />
             </span>
-            <span className="text-xs font-medium">Surprise</span>
+            <span className="text-xs font-medium">Kuch Bhi</span>
           </button>
         </div>
       </nav>

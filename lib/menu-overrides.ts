@@ -14,6 +14,14 @@ export interface Variant {
 }
 
 /** Admin panel se ek dish par kya kya badal sakta hai. Sab optional. */
+/** Extra fields an admin-created dish can carry. */
+export interface DishExtras {
+  /** ISO date, e.g. 2026-09-07. After this day the dish disappears. */
+  availableUntil?: string
+  /** 0=Sun .. 6=Sat. Empty or missing means every day. */
+  availableDays?: number[]
+}
+
 export interface DishOverride {
   name?: string
   description?: string
@@ -36,7 +44,17 @@ export interface RestaurantInfoOverride {
   timings?: { lunch?: string; dinner?: string }
 }
 
+export interface Banner {
+  id: string
+  title: string
+  subtitle?: string
+  /** Blob URL uploaded from the admin dashboard */
+  image?: string
+  active: boolean
+}
+
 export interface MenuOverrides {
+  banners?: Banner[]
   restaurantInfo?: RestaurantInfoOverride
   updatedAt?: string
   dishes: Record<string, DishOverride>
@@ -96,6 +114,8 @@ export function applyOverrides(base: MenuData, overrides: MenuOverrides | null):
     })
     .filter(d => !d.hidden)
 
+  const banners = overrides.banners?.filter(b => b.active) ?? []
+
   const restaurantInfo = overrides.restaurantInfo
     ? {
         ...base.restaurantInfo,
@@ -105,7 +125,12 @@ export function applyOverrides(base: MenuData, overrides: MenuOverrides | null):
       }
     : base.restaurantInfo
 
-  return { ...base, dishes: [...existing, ...added], restaurantInfo }
+  return {
+    ...base,
+    dishes: [...existing, ...added].filter(isAvailableToday),
+    banners,
+    restaurantInfo,
+  }
 }
 
 /**
@@ -119,4 +144,25 @@ export function findDuplicatePairs(dishes: Dish[]): Dish[][] {
     ;(groups[k] ||= []).push(d)
   })
   return Object.values(groups).filter(g => g.length > 1)
+}
+
+
+/**
+ * A daily special only shows on its allowed weekdays and up to its last date.
+ * Dishes without these fields are always available.
+ */
+export function isAvailableToday(dish: Dish & DishExtras): boolean {
+  const now = new Date()
+
+  if (dish.availableUntil) {
+    // compare date-only so the dish stays up for the whole last day
+    const end = new Date(dish.availableUntil + 'T23:59:59')
+    if (Number.isFinite(end.getTime()) && now > end) return false
+  }
+
+  if (dish.availableDays?.length) {
+    if (!dish.availableDays.includes(now.getDay())) return false
+  }
+
+  return true
 }

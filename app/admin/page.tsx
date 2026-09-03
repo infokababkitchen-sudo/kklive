@@ -17,7 +17,7 @@ const VARIANT_LABELS: { key: VariantKey; label: string; note: string }[] = [
   { key: 'full', label: 'Full', note: '' },
 ]
 
-type Tab = 'stock' | 'dishes' | 'variants' | 'new' | 'settings' | 'customers'
+type Tab = 'stock' | 'dishes' | 'variants' | 'new' | 'settings' | 'customers' | 'banners' | 'reviews'
 
 export default function AdminDashboard() {
   const [key, setKey] = useState('')
@@ -34,6 +34,8 @@ export default function AdminDashboard() {
   const [info, setInfo] = useState<Record<string, string>>({})
   const [health, setHealth] = useState<{ blobConfigured?: boolean; blobReadable?: boolean }>({})
   const [customers, setCustomers] = useState<any[] | null>(null)
+  const [banners, setBanners] = useState<any[]>([])
+  const [reviews, setReviews] = useState<any | null>(null)
 
   const [search, setSearch] = useState('')
   const [cat, setCat] = useState('all')
@@ -56,6 +58,7 @@ export default function AdminDashboard() {
       setEdits(o?.dishes || {})
       setNewDishes(o?.newDishes || [])
       setHealth(d.health || {})
+      setBanners(o?.banners || [])
       const ri = o?.restaurantInfo || {}
       setInfo({
         phone: ri.phone ?? d.restaurantInfo?.phone ?? '',
@@ -85,6 +88,7 @@ export default function AdminDashboard() {
         body: JSON.stringify({
           dishes: next?.edits ?? edits,
           newDishes: next?.newDishes ?? newDishes,
+          banners,
           restaurantInfo: {
             phone: info.phone,
             whatsapp: info.whatsapp,
@@ -195,7 +199,9 @@ export default function AdminDashboard() {
             ['variants', `Variants (${duplicates.length})`],
             ['new', 'Add dish'],
             ['settings', 'Contact'],
+            ['banners', 'Banners'],
             ['customers', 'Customers'],
+            ['reviews', 'Reviews'],
           ] as [Tab, string][]
         ).map(([t, label]) => (
           <button
@@ -233,6 +239,12 @@ export default function AdminDashboard() {
           </p>
         </div>
       )}
+
+      {tab === 'banners' && (
+        <BannersTab banners={banners} setBanners={setBanners} adminKey={key} />
+      )}
+
+      {tab === 'reviews' && <ReviewsTab data={reviews} adminKey={key} onLoad={setReviews} />}
 
       {tab === 'customers' && (
         <CustomersTab list={customers} adminKey={key} onLoad={setCustomers} />
@@ -630,17 +642,35 @@ function NewDishTab({
   const [category, setCategory] = useState(categories[0]?.id || '')
   const [desc, setDesc] = useState('')
   const [isVeg, setIsVeg] = useState(true)
+  const [until, setUntil] = useState('')
+  const [days, setDays] = useState<number[]>([])
+  const [rows, setRows] = useState<{ label: string; price: string }[]>([])
+
+  const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+  function toggleDay(d: number) {
+    setDays(p => (p.includes(d) ? p.filter(x => x !== d) : [...p, d]))
+  }
 
   function add() {
-    if (!name || !price || !category) return
+    const variants = rows
+      .filter(r => r.label.trim() && Number(r.price) > 0)
+      .map((r, i) => ({
+        key: (['half', 'full', 'dry', 'roll'] as const)[i] || 'full',
+        label: r.label.trim(),
+        price: Number(r.price),
+      }))
+
+    if (!name || !category) return
+    if (!variants.length && !price) return
+
     setNewDishes(prev => {
       const id = Math.max(999, ...prev.map(d => d.id)) + 1
-      const dish: Dish = {
+      const dish: any = {
         id,
         name,
         category,
         isVeg,
-        price: Number(price),
         description: desc || name,
         calories: 0,
         spiceLevel: 'medium',
@@ -650,23 +680,95 @@ function NewDishTab({
         isNew: true,
         image: '/images/placeholder-dish.jpg',
       }
+      if (variants.length) dish.variants = variants
+      else dish.price = Number(price)
+      if (until) dish.availableUntil = until
+      if (days.length) dish.availableDays = days
       return [...prev, dish]
     })
     setName('')
     setPrice('')
     setDesc('')
+    setUntil('')
+    setDays([])
+    setRows([])
   }
 
   return (
     <div className="space-y-4">
+      <p className="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
+        Use this for a daily special too. Add sizes as variants, pick the days it runs
+        and the last date it should appear. After that date it disappears on its own.
+      </p>
+
       <div className="space-y-2 rounded-xl border p-3">
         <input
           value={name}
           onChange={e => setName(e.target.value)}
-          placeholder="Dish name"
+          placeholder="Dish name, e.g. Sunday Chicken Biryani"
           className="w-full rounded-lg border bg-background p-2.5 text-sm"
         />
-        <div className="flex gap-2">
+        <input
+          value={desc}
+          onChange={e => setDesc(e.target.value)}
+          placeholder="Description (optional)"
+          className="w-full rounded-lg border bg-background p-2.5 text-sm"
+        />
+        <select
+          value={category}
+          onChange={e => setCategory(e.target.value)}
+          className="w-full rounded-lg border bg-background p-2.5 text-sm"
+        >
+          {categories.map(c => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+
+        <div className="rounded-lg border p-2.5">
+          <p className="text-xs font-semibold">Sizes</p>
+          <p className="text-[11px] text-muted-foreground">
+            Leave empty for a single price. Example: 300g / 600g / 1kg.
+          </p>
+          {rows.map((r, i) => (
+            <div key={i} className="mt-2 flex gap-2">
+              <input
+                value={r.label}
+                onChange={e =>
+                  setRows(p => p.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))
+                }
+                placeholder="300g"
+                className="flex-1 rounded-lg border bg-background p-2 text-sm"
+              />
+              <input
+                type="number"
+                value={r.price}
+                onChange={e =>
+                  setRows(p => p.map((x, j) => (j === i ? { ...x, price: e.target.value } : x)))
+                }
+                placeholder="100"
+                className="w-24 rounded-lg border bg-background p-2 text-sm"
+              />
+              <button
+                onClick={() => setRows(p => p.filter((_, j) => j !== i))}
+                className="px-2 text-xs text-red-600"
+              >
+                x
+              </button>
+            </div>
+          ))}
+          {rows.length < 4 && (
+            <button
+              onClick={() => setRows(p => [...p, { label: '', price: '' }])}
+              className="mt-2 rounded-lg border px-3 py-1.5 text-xs"
+            >
+              Add size
+            </button>
+          )}
+        </div>
+
+        {!rows.length && (
           <input
             value={price}
             onChange={e => setPrice(e.target.value)}
@@ -674,38 +776,54 @@ function NewDishTab({
             placeholder="Price"
             className="w-32 rounded-lg border bg-background p-2.5 text-sm"
           />
-          <select
-            value={category}
-            onChange={e => setCategory(e.target.value)}
-            className="flex-1 rounded-lg border bg-background p-2.5 text-sm"
-          >
-            {categories.map(c => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
+        )}
+
+        <div className="rounded-lg border p-2.5">
+          <p className="text-xs font-semibold">Runs on</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {DAYS.map((d, i) => (
+              <button
+                key={d}
+                onClick={() => toggleDay(i)}
+                className={
+                  'rounded-full border px-2.5 py-1 text-xs ' +
+                  (days.includes(i) ? 'border-primary text-primary' : 'text-muted-foreground')
+                }
+              >
+                {d}
+              </button>
             ))}
-          </select>
+          </div>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            {days.length ? 'Only on the days above.' : 'No day picked means every day.'}
+          </p>
+
+          <label className="mt-2 block">
+            <span className="text-xs text-muted-foreground">Last date shown (optional)</span>
+            <input
+              type="date"
+              value={until}
+              onChange={e => setUntil(e.target.value)}
+              className="mt-1 w-full rounded-lg border bg-background p-2 text-sm"
+            />
+          </label>
         </div>
-        <input
-          value={desc}
-          onChange={e => setDesc(e.target.value)}
-          placeholder="Description (optional)"
-          className="w-full rounded-lg border bg-background p-2.5 text-sm"
-        />
+
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={isVeg} onChange={e => setIsVeg(e.target.checked)} />
           Veg
         </label>
+
         <button
           onClick={add}
-          disabled={!name || !price}
+          disabled={!name || (!price && !rows.some(r => r.label && r.price))}
           className="w-full rounded-lg bg-primary p-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
         >
           Add dish
         </button>
         <p className="text-xs text-muted-foreground">
-          Add karne ke baad neeche &quot;Save changes&quot; dabana zaroori hai. Photo Dishes tab se
-          lagana.
+          After adding, tap Save changes below to publish. Attach a photo from the Dishes
+          tab, and use the Stock tab to mark it sold out.
         </p>
       </div>
 
@@ -713,18 +831,26 @@ function NewDishTab({
         <div>
           <p className="mb-2 text-sm font-medium">Dishes you added</p>
           <div className="space-y-2">
-            {newDishes.map(d => (
+            {newDishes.map((d: any) => (
               <div key={d.id} className="flex items-center justify-between rounded-xl border p-3">
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm font-medium">{d.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    #{d.id} · {d.category} · Rs.{d.price}
+                    #{d.id} &middot; {d.category} &middot;{' '}
+                    {d.variants?.length
+                      ? d.variants.map((v: any) => v.label + ' Rs.' + v.price).join(' / ')
+                      : 'Rs.' + d.price}
                   </p>
+                  {(d.availableDays?.length || d.availableUntil) && (
+                    <p className="text-xs text-amber-700">
+                      {d.availableDays?.length
+                        ? d.availableDays.map((i: number) => DAYS[i]).join(', ')
+                        : 'Every day'}
+                      {d.availableUntil ? ' until ' + d.availableUntil : ''}
+                    </p>
+                  )}
                 </div>
-                <button
-                  onClick={() => onRemove(d.id)}
-                  className="text-xs text-red-600"
-                >
+                <button onClick={() => onRemove(d.id)} className="text-xs text-red-600">
                   Delete
                 </button>
               </div>
@@ -877,6 +1003,199 @@ function CustomersTab({
           </div>
         </>
       )}
+    </div>
+  )
+}
+// ------------------------------------------------------------------ banners
+function BannersTab({
+  banners,
+  setBanners,
+  adminKey,
+}: {
+  banners: any[]
+  setBanners: (b: any[]) => void
+  adminKey: string
+}) {
+  const [uploading, setUploading] = useState<string | null>(null)
+  const [msg, setMsg] = useState('')
+
+  function add() {
+    setBanners([
+      ...banners,
+      { id: 'b' + Date.now().toString(36), title: 'New banner', subtitle: '', image: '', active: true },
+    ])
+  }
+
+  function patch(id: string, p: any) {
+    setBanners(banners.map(b => (b.id === id ? { ...b, ...p } : b)))
+  }
+
+  async function upload(id: string, file: File) {
+    setUploading(id)
+    setMsg('')
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      form.append('dishId', 'banner-' + id)
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey },
+        body: form,
+      })
+      const d = await res.json()
+      if (!res.ok) {
+        setMsg(d.error || 'Upload failed.')
+        return
+      }
+      patch(id, { image: d.url })
+      setMsg('Image attached. Tap Save changes to publish.')
+    } catch {
+      setMsg('Upload failed.')
+    } finally {
+      setUploading(null)
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
+        These are the sliding banners at the top of the menu. Add as many as you like.
+        With no active banners the app falls back to plain text slides.
+      </p>
+
+      {banners.map(b => (
+        <div key={b.id} className={'rounded-xl border p-3 ' + (b.active ? '' : 'opacity-50')}>
+          <div className="flex items-start gap-3">
+            {b.image ? (
+              <img src={b.image} alt="" className="h-16 w-24 shrink-0 rounded-lg object-cover" />
+            ) : (
+              <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded-lg bg-muted text-[10px] text-muted-foreground">
+                no image
+              </div>
+            )}
+            <div className="min-w-0 flex-1 space-y-2">
+              <input
+                value={b.title}
+                onChange={e => patch(b.id, { title: e.target.value })}
+                placeholder="Title"
+                className="w-full rounded-lg border bg-background p-2 text-sm"
+              />
+              <input
+                value={b.subtitle || ''}
+                onChange={e => patch(b.id, { subtitle: e.target.value })}
+                placeholder="Subtitle (optional)"
+                className="w-full rounded-lg border bg-background p-2 text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <label className="cursor-pointer rounded-lg border px-3 py-2 text-xs">
+              {uploading === b.id ? 'Uploading...' : b.image ? 'Replace image' : 'Upload image'}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={e => {
+                  const f = e.target.files?.[0]
+                  if (f) upload(b.id, f)
+                }}
+              />
+            </label>
+            <label className="flex items-center gap-1.5 text-xs">
+              <input
+                type="checkbox"
+                checked={b.active}
+                onChange={e => patch(b.id, { active: e.target.checked })}
+              />
+              Show on site
+            </label>
+            <button
+              onClick={() => setBanners(banners.filter(x => x.id !== b.id))}
+              className="ml-auto text-xs text-red-600"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      ))}
+
+      <button onClick={add} className="w-full rounded-xl border p-3 text-sm font-medium">
+        Add banner
+      </button>
+      {msg && <p className="text-xs text-muted-foreground">{msg}</p>}
+    </div>
+  )
+}
+
+// ------------------------------------------------------------------ reviews
+function ReviewsTab({
+  data,
+  adminKey,
+  onLoad,
+}: {
+  data: any | null
+  adminKey: string
+  onLoad: (d: any) => void
+}) {
+  const [busy, setBusy] = useState(false)
+
+  async function load() {
+    setBusy(true)
+    try {
+      const res = await fetch('/api/reviews', { headers: { 'x-admin-key': adminKey } })
+      onLoad(await res.json())
+    } catch {
+      onLoad({ average: 0, count: 0, reviews: [] })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!data) {
+    return (
+      <button
+        onClick={load}
+        disabled={busy}
+        className="w-full rounded-xl bg-primary p-3 font-semibold text-primary-foreground disabled:opacity-50"
+      >
+        {busy ? 'Loading...' : 'Load reviews'}
+      </button>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-xl border p-3">
+          <p className="text-2xl font-bold text-amber-500">
+            {data.average || '-'} <span className="text-base">/ 5</span>
+          </p>
+          <p className="text-xs text-muted-foreground">Average rating</p>
+        </div>
+        <div className="rounded-xl border p-3">
+          <p className="text-2xl font-bold">{data.count}</p>
+          <p className="text-xs text-muted-foreground">Reviews</p>
+        </div>
+      </div>
+
+      <div className="divide-y rounded-xl border">
+        {(data.reviews || []).map((r: any) => (
+          <div key={r.id} className="p-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium">{'*'.repeat(r.rating)}{'-'.repeat(5 - r.rating)} {r.rating}/5</p>
+              <p className="text-xs text-muted-foreground">
+                {new Date(r.createdAt).toLocaleDateString()}
+              </p>
+            </div>
+            {r.name && <p className="text-xs text-muted-foreground">{r.name}</p>}
+            {r.comment && <p className="mt-1 text-sm">{r.comment}</p>}
+          </div>
+        ))}
+        {!(data.reviews || []).length && (
+          <p className="p-6 text-center text-sm text-muted-foreground">No reviews yet.</p>
+        )}
+      </div>
     </div>
   )
 }

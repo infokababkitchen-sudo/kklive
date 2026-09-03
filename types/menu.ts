@@ -20,6 +20,8 @@ export interface Dish {
   variants?: { key: 'half' | 'full' | 'dry' | 'roll'; label: string; price: number; note?: string }[]
   inStock?: boolean
   hidden?: boolean
+  availableUntil?: string
+  availableDays?: number[]
 }
 
 export interface Category {
@@ -62,6 +64,7 @@ export interface MenuData {
   todaysSpecials: TodaysSpecial[]
   promoCodes: PromoCode[]
   addOnGroups?: AddOnGroup[]
+  banners?: { id: string; title: string; subtitle?: string; image?: string; active: boolean }[]
   restaurantInfo: RestaurantInfo
 }
 
