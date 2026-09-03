@@ -194,7 +194,7 @@ export default function CartPage() {
     message += `*Expected Delivery:* 30-45 minutes\n\n`
     message += `Thank you for ordering! 🙏`
     
-    const whatsappUrl = `https://wa.me/${menuData.restaurantInfo.whatsapp}?text=${encodeURIComponent(message)}`
+    const whatsappUrl = `https://wa.me/${liveMenu.restaurantInfo.whatsapp}?text=${encodeURIComponent(message)}`
     window.open(whatsappUrl, '_blank')
   }
 
@@ -219,7 +219,7 @@ export default function CartPage() {
   if (!hydrated) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <p className="text-sm text-muted-foreground">Cart load ho raha hai...</p>
+        <p className="text-sm text-muted-foreground">Loading your cart…</p>
       </div>
     )
   }
@@ -826,13 +826,13 @@ export default function CartPage() {
         {hasSoldOut && (
           <div className="mb-3 rounded-xl border border-red-300 bg-red-50 p-3">
             <p className="text-sm font-medium text-red-700">
-              Ye abhi out of stock hai: {soldOut.map(i => i.name).join(', ')}
+              Currently unavailable: {soldOut.map(i => i.name).join(', ')}
             </p>
             <button
               onClick={() => soldOut.forEach(i => removeItem(i.id, i.size))}
               className="mt-1 text-xs font-semibold text-red-700 underline"
             >
-              Cart se hata do
+              Remove from cart
             </button>
           </div>
         )}
@@ -841,7 +841,7 @@ export default function CartPage() {
           disabled={hasSoldOut}
           className="w-full bg-primary text-primary-foreground h-12 text-base font-semibold disabled:opacity-50"
         >
-          {hasSoldOut ? 'Out of stock item hatao' : `Proceed to Checkout - Rs.${total}`}
+          {hasSoldOut ? 'Remove out-of-stock items' : `Proceed to Checkout - Rs.${total}`}
         </Button>
       </div>
 

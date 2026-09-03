@@ -21,6 +21,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Only image files' }, { status: 400 })
   }
 
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return NextResponse.json(
+      { error: 'BLOB_READ_WRITE_TOKEN is not set, so photos cannot be uploaded.' },
+      { status: 500 }
+    )
+  }
+
   const ext = file.name.split('.').pop() || 'jpg'
   const blob = await put(`kabab-kitchen/dishes/${dishId}.${ext}`, file, {
     access: 'public',

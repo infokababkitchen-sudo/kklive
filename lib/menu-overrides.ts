@@ -29,7 +29,15 @@ export interface DishOverride {
   variants?: Variant[]
 }
 
+export interface RestaurantInfoOverride {
+  phone?: string
+  whatsapp?: string
+  outlet?: string
+  timings?: { lunch?: string; dinner?: string }
+}
+
 export interface MenuOverrides {
+  restaurantInfo?: RestaurantInfoOverride
   updatedAt?: string
   dishes: Record<string, DishOverride>
   /** Admin panel se banayi gayi nayi dishes */
@@ -88,7 +96,16 @@ export function applyOverrides(base: MenuData, overrides: MenuOverrides | null):
     })
     .filter(d => !d.hidden)
 
-  return { ...base, dishes: [...existing, ...added] }
+  const restaurantInfo = overrides.restaurantInfo
+    ? {
+        ...base.restaurantInfo,
+        ...Object.fromEntries(
+          Object.entries(overrides.restaurantInfo).filter(([, v]) => v !== undefined && v !== '')
+        ),
+      }
+    : base.restaurantInfo
+
+  return { ...base, dishes: [...existing, ...added], restaurantInfo }
 }
 
 /**

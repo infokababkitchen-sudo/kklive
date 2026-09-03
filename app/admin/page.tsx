@@ -17,7 +17,7 @@ const VARIANT_LABELS: { key: VariantKey; label: string; note: string }[] = [
   { key: 'full', label: 'Full', note: '' },
 ]
 
-type Tab = 'stock' | 'dishes' | 'variants' | 'new'
+type Tab = 'stock' | 'dishes' | 'variants' | 'new' | 'settings'
 
 export default function AdminDashboard() {
   const [key, setKey] = useState('')
@@ -31,6 +31,8 @@ export default function AdminDashboard() {
   const [duplicates, setDuplicates] = useState<DuplicateGroup[]>([])
   const [edits, setEdits] = useState<Record<string, DishOverride>>({})
   const [newDishes, setNewDishes] = useState<Dish[]>([])
+  const [info, setInfo] = useState<Record<string, string>>({})
+  const [health, setHealth] = useState<{ blobConfigured?: boolean; blobReadable?: boolean }>({})
 
   const [search, setSearch] = useState('')
   const [cat, setCat] = useState('all')
@@ -42,7 +44,7 @@ export default function AdminDashboard() {
     try {
       const res = await fetch('/api/admin/settings', { headers: { 'x-admin-key': key } })
       if (!res.ok) {
-        setMsg('Galat admin key.')
+        setMsg('That admin key is not correct.')
         return
       }
       const d = await res.json()
@@ -52,9 +54,18 @@ export default function AdminDashboard() {
       const o = d.overrides as MenuOverrides
       setEdits(o?.dishes || {})
       setNewDishes(o?.newDishes || [])
+      setHealth(d.health || {})
+      const ri = o?.restaurantInfo || {}
+      setInfo({
+        phone: ri.phone ?? d.restaurantInfo?.phone ?? '',
+        whatsapp: ri.whatsapp ?? d.restaurantInfo?.whatsapp ?? '',
+        outlet: ri.outlet ?? d.restaurantInfo?.outlet ?? '',
+        lunch: ri.timings?.lunch ?? d.restaurantInfo?.timings?.lunch ?? '',
+        dinner: ri.timings?.dinner ?? d.restaurantInfo?.timings?.dinner ?? '',
+      })
       setUnlocked(true)
     } catch {
-      setMsg('Load nahi ho paya.')
+      setMsg('Could not load. Try again.')
     } finally {
       setBusy(false)
     }
@@ -73,11 +84,17 @@ export default function AdminDashboard() {
         body: JSON.stringify({
           dishes: next?.edits ?? edits,
           newDishes: next?.newDishes ?? newDishes,
+          restaurantInfo: {
+            phone: info.phone,
+            whatsapp: info.whatsapp,
+            outlet: info.outlet,
+            timings: { lunch: info.lunch, dinner: info.dinner },
+          },
         }),
       })
-      setMsg(res.ok ? 'Saved. Site par turant dikh jayega.' : 'Save fail hua.')
+      setMsg(res.ok ? 'Saved. Live on the site now.' : (await res.json().catch(() => ({}))).error || 'Save failed.')
     } catch {
-      setMsg('Save fail hua.')
+      setMsg('Save failed. Check your connection.')
     } finally {
       setBusy(false)
     }
@@ -100,13 +117,13 @@ export default function AdminDashboard() {
       })
       const d = await res.json()
       if (!res.ok) {
-        setMsg(d.error || 'Photo upload fail hui.')
+        setMsg(d.error || 'Photo upload failed.')
         return
       }
       patch(id, { image: d.url })
-      setMsg('Photo lag gayi. Save dabana mat bhoolna.')
+      setMsg('Photo attached. Tap Save changes to publish it.')
     } catch {
-      setMsg('Photo upload fail hui.')
+      setMsg('Photo upload failed.')
     } finally {
       setUploading(null)
     }
@@ -125,6 +142,7 @@ export default function AdminDashboard() {
   )
 
   const changed = Object.values(edits).filter(o => o && Object.keys(o).length).length
+  const isPlaceholderWhatsapp = /^9?1?0{6,}$/.test((info.whatsapp || '').replace(/\D/g, ''))
 
   // ------------------------------------------------------------ locked
   if (!unlocked) {
@@ -134,7 +152,7 @@ export default function AdminDashboard() {
           <p className="text-sm font-semibold text-primary">Kabab Kitchen</p>
           <h1 className="text-3xl font-bold">Admin dashboard</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Key daalo. Phir prices, stock, variants aur photos sab yahin se manage kar sakte ho.
+            Enter your key to manage prices, stock, variants, photos and contact details.
           </p>
         </div>
         <input
@@ -164,7 +182,7 @@ export default function AdminDashboard() {
         <p className="text-sm font-semibold text-primary">Kabab Kitchen</p>
         <h1 className="text-2xl font-bold">Admin dashboard</h1>
         <p className="text-sm text-muted-foreground">
-          {allDishes.length} dishes · {changed} mein changes
+          {allDishes.length} dishes · {changed} edited
         </p>
       </div>
 
@@ -174,7 +192,8 @@ export default function AdminDashboard() {
             ['stock', 'Stock'],
             ['dishes', 'Dishes'],
             ['variants', `Variants (${duplicates.length})`],
-            ['new', 'Nayi dish'],
+            ['new', 'Add dish'],
+            ['settings', 'Contact'],
           ] as [Tab, string][]
         ).map(([t, label]) => (
           <button
@@ -188,6 +207,58 @@ export default function AdminDashboard() {
           </button>
         ))}
       </div>
+
+      {health.blobConfigured === false && (
+        <div className="mb-4 rounded-xl border border-red-300 bg-red-50 p-3">
+          <p className="text-sm font-semibold text-red-800">
+            Storage is not connected, so nothing can be saved.
+          </p>
+          <p className="mt-1 text-xs text-red-700">
+            BLOB_READ_WRITE_TOKEN is missing. In Vercel open Storage, connect a
+            Blob store to this project, then redeploy.
+          </p>
+        </div>
+      )}
+
+      {isPlaceholderWhatsapp && (
+        <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3">
+          <p className="text-sm font-semibold text-amber-900">
+            Orders are going to a placeholder WhatsApp number.
+          </p>
+          <p className="mt-1 text-xs text-amber-800">
+            Open the Contact tab and enter your real number, otherwise checkout
+            sends orders nowhere.
+          </p>
+        </div>
+      )}
+
+      {tab === 'settings' && (
+        <div className="space-y-3">
+          <p className="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
+            Checkout sends every order to the WhatsApp number below. Use the
+            country code with no plus sign or spaces, for example 919266321191.
+          </p>
+          {(
+            [
+              ['whatsapp', 'WhatsApp number (orders go here)', '919266321191'],
+              ['phone', 'Phone shown to customers', '+91 98765 43210'],
+              ['outlet', 'Outlet address', 'Kabab Kitchen, Ghaziabad'],
+              ['lunch', 'Lunch timings', '12:00 PM - 4:00 PM'],
+              ['dinner', 'Dinner timings', '7:00 PM - 11:00 PM'],
+            ] as [string, string, string][]
+          ).map(([k, label, ph]) => (
+            <label key={k} className="block">
+              <span className="text-xs text-muted-foreground">{label}</span>
+              <input
+                value={info[k] || ''}
+                placeholder={ph}
+                onChange={e => setInfo(prev => ({ ...prev, [k]: e.target.value }))}
+                className="mt-1 w-full rounded-xl border bg-background p-2.5 text-sm"
+              />
+            </label>
+          ))}
+        </div>
+      )}
 
       {tab === 'stock' && (
         <StockTab
@@ -215,7 +286,7 @@ export default function AdminDashboard() {
           <div className="mb-3 flex flex-col gap-2 sm:flex-row">
             <input
               value={search}
-              placeholder="Dish dhoondo..."
+              placeholder="Search dishes…"
               onChange={e => setSearch(e.target.value)}
               className="flex-1 rounded-xl border bg-background p-2.5 text-sm"
             />
@@ -224,7 +295,7 @@ export default function AdminDashboard() {
               onChange={e => setCat(e.target.value)}
               className="rounded-xl border bg-background p-2.5 text-sm"
             >
-              <option value="all">Saari categories</option>
+              <option value="all">All categories</option>
               {categories.map(c => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -270,7 +341,7 @@ export default function AdminDashboard() {
                           checked={hidden}
                           onChange={e => patch(dish.id, { hidden: e.target.checked })}
                         />
-                        Menu se hatao
+                        Hide from menu
                       </label>
                     </div>
                   </div>
@@ -316,7 +387,7 @@ export default function AdminDashboard() {
               )
             })}
             {!visible.length && (
-              <p className="py-8 text-center text-sm text-muted-foreground">Koi dish nahi mili.</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">No dishes match.</p>
             )}
           </div>
         </>
@@ -397,7 +468,7 @@ function StockTab({
         <input
           value={q}
           onChange={e => setQ(e.target.value)}
-          placeholder="Dish dhoondo..."
+          placeholder="Search dishes…"
           className="flex-1 rounded-xl border bg-background p-2.5 text-sm"
         />
         <button
@@ -405,7 +476,7 @@ function StockTab({
           disabled={busy}
           className="rounded-xl border px-3 text-xs font-medium disabled:opacity-50"
         >
-          Sab on
+          All in stock
         </button>
       </div>
 
@@ -433,7 +504,7 @@ function StockTab({
           )
         })}
         {!list.length && (
-          <p className="p-6 text-center text-sm text-muted-foreground">Koi dish nahi mili.</p>
+          <p className="p-6 text-center text-sm text-muted-foreground">No dishes match.</p>
         )}
       </div>
     </div>
@@ -477,7 +548,7 @@ function VariantsTab({
   }
 
   if (!duplicates.length) {
-    return <p className="py-8 text-center text-sm text-muted-foreground">Koi duplicate nahi mila.</p>
+    return <p className="py-8 text-center text-sm text-muted-foreground">No duplicates found.</p>
   }
 
   return (
@@ -512,7 +583,7 @@ function VariantsTab({
                     }
                     className="flex-1 rounded-lg border bg-background p-2 text-sm"
                   >
-                    <option value="">Ye kaunsa hai?</option>
+                    <option value="">Which one is this?</option>
                     {VARIANT_LABELS.map(v => (
                       <option key={v.key} value={v.key}>
                         {v.label}
@@ -586,7 +657,7 @@ function NewDishTab({
         <input
           value={name}
           onChange={e => setName(e.target.value)}
-          placeholder="Dish ka naam"
+          placeholder="Dish name"
           className="w-full rounded-lg border bg-background p-2.5 text-sm"
         />
         <div className="flex gap-2">
@@ -634,7 +705,7 @@ function NewDishTab({
 
       {newDishes.length > 0 && (
         <div>
-          <p className="mb-2 text-sm font-medium">Aapki added dishes</p>
+          <p className="mb-2 text-sm font-medium">Dishes you added</p>
           <div className="space-y-2">
             {newDishes.map(d => (
               <div key={d.id} className="flex items-center justify-between rounded-xl border p-3">
