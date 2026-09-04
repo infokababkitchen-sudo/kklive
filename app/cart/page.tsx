@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect} from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowLeft, Minus, Plus, Trash2, MapPin, Clock, ShoppingBag, Tag, Gift, Truck, Check, CreditCard, Banknote, X, Loader2 } from 'lucide-react'
@@ -61,6 +61,8 @@ export default function CartPage() {
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>('cart')
   const [marketingConsent, setMarketingConsent] = useState(false)
   const [showReview, setShowReview] = useState(false)
+  const [placed, setPlaced] = useState<string | null>(null)
+  const [prefilled, setPrefilled] = useState(false)
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails>({
     name: '',
     phone: '',
@@ -158,6 +160,28 @@ export default function CartPage() {
     return Object.keys(newErrors).length === 0
   }
 
+  // A returning customer should not retype their address.
+  useEffect(() => {
+    const phone = (customerDetails.phone || '').replace(/\D/g, '')
+    if (phone.length !== 10 || prefilled) return
+    let cancelled = false
+    fetch('/api/customers/lookup?phone=' + phone)
+      .then(r => r.json())
+      .then(d => {
+        if (cancelled || !d?.found) return
+        setPrefilled(true)
+        setCustomerDetails(prev => ({
+          ...prev,
+          name: prev.name || d.name || '',
+          address: prev.address || d.address || '',
+        }))
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [customerDetails.phone, prefilled])
+
   const handleProceedToPayment = () => {
     if (validateDetails()) {
       setCheckoutStep('payment')
@@ -242,7 +266,10 @@ export default function CartPage() {
       })
         .then(r => r.json())
         .then(d => {
-          if (d?.code) rememberOrder(d.code)
+          if (d?.code) {
+            rememberOrder(d.code)
+            setPlaced(d.code)
+          }
         })
         .catch(() => {})
     }
@@ -260,10 +287,23 @@ export default function CartPage() {
       }),
     }).catch(() => {})
 
-    // The owner can switch WhatsApp off once the panel is trusted.
-    if (liveMenu.whatsappOrders !== false) {
-      const whatsappUrl = `https://wa.me/${liveMenu.restaurantInfo.whatsapp}?text=${encodeURIComponent(message)}`
-      window.open(whatsappUrl, '_blank')
+    // WhatsApp is the fallback, not a duplicate. If the kitchen panel is open
+    // and answering, the order is already in front of them. If it is closed,
+    // logged out or offline, WhatsApp still reaches the phone.
+    const openWhatsApp = () => {
+      const url = `https://wa.me/${liveMenu.restaurantInfo.whatsapp}?text=${encodeURIComponent(message)}`
+      window.open(url, '_blank')
+    }
+
+    if (liveMenu.panelOrders) {
+      fetch('/api/panel/status', { cache: 'no-store' })
+        .then(r => r.json())
+        .then(d => {
+          if (!d?.live) openWhatsApp()
+        })
+        .catch(openWhatsApp)
+    } else {
+      openWhatsApp()
     }
   }
 
@@ -271,7 +311,6 @@ export default function CartPage() {
     sendWhatsAppOrder('Cash on Delivery')
     clearCart()
     setCheckoutStep('cart')
-    setShowReview(true)
   }
 
   const handleUPIPayment = () => {
@@ -282,7 +321,6 @@ export default function CartPage() {
     sendWhatsAppOrder('UPI - payment in process')
     clearCart()
     setCheckoutStep('cart')
-    setShowReview(true)
   }
 
   const availableCoupons = couponsData.coupons.filter(c => c.isActive) as Coupon[]
@@ -325,6 +363,28 @@ export default function CartPage() {
         </div>
         
         <BottomNav />
+      {placed && (
+        <div className="fixed inset-0 z-[96] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" />
+          <div className="relative w-full max-w-sm rounded-2xl bg-background p-6 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+              <Check className="h-8 w-8 text-green-600" />
+            </div>
+            <h2 className="mt-4 text-xl font-bold">Thank you for ordering</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Your order <span className="font-semibold text-foreground">{placed}</span> is
+              with the kitchen. Track it from the bar at the bottom of the screen.
+            </p>
+            <button
+              onClick={() => setPlaced(null)}
+              className="mt-5 w-full rounded-xl bg-primary p-3 font-semibold text-primary-foreground"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
       {showCoupons && (
         <CouponSheet
           coupons={availableCoupons as any}
@@ -912,6 +972,28 @@ export default function CartPage() {
       </div>
 
       <BottomNav />
+      {placed && (
+        <div className="fixed inset-0 z-[96] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" />
+          <div className="relative w-full max-w-sm rounded-2xl bg-background p-6 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+              <Check className="h-8 w-8 text-green-600" />
+            </div>
+            <h2 className="mt-4 text-xl font-bold">Thank you for ordering</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Your order <span className="font-semibold text-foreground">{placed}</span> is
+              with the kitchen. Track it from the bar at the bottom of the screen.
+            </p>
+            <button
+              onClick={() => setPlaced(null)}
+              className="mt-5 w-full rounded-xl bg-primary p-3 font-semibold text-primary-foreground"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
       {showCoupons && (
         <CouponSheet
           coupons={availableCoupons as any}

@@ -5,6 +5,7 @@ import { CartProvider } from '@/context/cart-context'
 import { SplashScreen } from '@/components/splash-screen'
 import { CartOverlay } from '@/components/cart-overlay'
 import { OrderTracker } from '@/components/order-tracker'
+import { PwaSetup } from '@/components/pwa'
 import Script from 'next/script'
 import { StructuredData } from '@/components/structured-data'
 import { site } from '@/lib/site-config'
@@ -90,6 +91,7 @@ export default function RootLayout({
           <SplashScreen />
           <CartOverlay />
           <OrderTracker />
+          <PwaSetup />
         </CartProvider>
         <Analytics />
         {site.gaId && (

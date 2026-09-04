@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from 'react'
-import { Check, ChefHat, Bike, Clock, X, PackageCheck } from 'lucide-react'
+import { Check, ChefHat, Bike, Clock, X, PackageCheck, Star } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const KEY = 'kk-active-order'
@@ -36,6 +36,9 @@ export function OrderTracker() {
   const [order, setOrder] = useState<Tracked | null>(null)
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [rating, setRating] = useState(0)
+  const [sent, setSent] = useState(false)
+  const [comment, setComment] = useState('')
 
   const forget = useCallback(() => {
     try {
@@ -207,13 +210,69 @@ export function OrderTracker() {
           </button>
         )}
 
-        {order.status === 'delivered' && (
-          <button
-            onClick={forget}
-            className="mt-2 w-full rounded-xl border p-3 text-sm font-semibold"
-          >
-            Done
-          </button>
+        {order.status === 'delivered' && !sent && (
+          <div className="mt-3 rounded-xl border p-3">
+            <p className="text-sm font-semibold">How was it?</p>
+            <p className="text-xs text-muted-foreground">Optional, takes a moment.</p>
+            <div className="mt-2 flex justify-center gap-1">
+              {[1, 2, 3, 4, 5].map(n => (
+                <button key={n} onClick={() => setRating(n)} aria-label={n + ' star'} className="p-1">
+                  <Star
+                    className={cn(
+                      'h-7 w-7',
+                      rating >= n ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/40'
+                    )}
+                  />
+                </button>
+              ))}
+            </div>
+            <textarea
+              value={comment}
+              maxLength={500}
+              rows={2}
+              onChange={e => setComment(e.target.value)}
+              placeholder="Anything the kitchen should know?"
+              className="mt-2 w-full resize-none rounded-lg border bg-background p-2 text-sm"
+            />
+            <button
+              onClick={async () => {
+                if (!rating) return
+                setBusy(true)
+                try {
+                  await fetch('/api/reviews', {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json' },
+                    body: JSON.stringify({ rating, comment }),
+                  })
+                } catch {
+                  /* thank them anyway */
+                } finally {
+                  setSent(true)
+                  setBusy(false)
+                }
+              }}
+              disabled={!rating || busy}
+              className="mt-2 w-full rounded-xl bg-primary p-3 text-sm font-bold text-primary-foreground disabled:opacity-50"
+            >
+              {busy ? 'Sending...' : 'Send feedback'}
+            </button>
+            <button onClick={forget} className="mt-1 w-full p-2 text-xs text-muted-foreground">
+              Skip
+            </button>
+          </div>
+        )}
+
+        {order.status === 'delivered' && sent && (
+          <div className="mt-3 text-center">
+            <p className="text-sm font-semibold">Thank you</p>
+            <p className="text-xs text-muted-foreground">Your feedback helps the kitchen.</p>
+            <button
+              onClick={forget}
+              className="mt-3 w-full rounded-xl border p-3 text-sm font-semibold"
+            >
+              Done
+            </button>
+          </div>
         )}
       </div>
     </div>

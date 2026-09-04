@@ -5,6 +5,8 @@ import type { Dish, Category } from '@/types/menu'
 import type { DishOverride, MenuOverrides, Variant, VariantKey, DishMedia } from '@/lib/menu-overrides'
 import { mediaTypeOf } from '@/lib/menu-overrides'
 import { OrdersTab } from '@/components/orders-tab'
+import { useOrderWatch } from '@/hooks/use-order-watch'
+import { PromoteTab } from '@/components/promote-tab'
 
 interface DuplicateGroup {
   name: string
@@ -19,7 +21,7 @@ const VARIANT_LABELS: { key: VariantKey; label: string; note: string }[] = [
   { key: 'full', label: 'Full', note: '' },
 ]
 
-type Tab = 'orders' | 'stock' | 'dishes' | 'variants' | 'new' | 'settings' | 'customers' | 'banners' | 'reviews'
+type Tab = 'orders' | 'stock' | 'dishes' | 'variants' | 'new' | 'settings' | 'customers' | 'banners' | 'reviews' | 'promote'
 
 export default function AdminDashboard() {
   const [key, setKey] = useState('')
@@ -43,7 +45,8 @@ export default function AdminDashboard() {
   const [delivery, setDelivery] = useState<any>({})
   const [panelOrders, setPanelOrders] = useState(false)
   const [dirtyOther, setDirtyOther] = useState(false)
-  const [whatsappOrders, setWhatsappOrders] = useState(true)
+  const [orderDate, setOrderDate] = useState('')
+  const watch = useOrderWatch(key, unlocked && panelOrders, orderDate)
   const [reviews, setReviews] = useState<any | null>(null)
 
   const [search, setSearch] = useState('')
@@ -93,7 +96,6 @@ export default function AdminDashboard() {
       setBanners(o?.banners || [])
       setDelivery(o?.delivery || {})
       setPanelOrders(o?.panelOrders === true)
-      setWhatsappOrders(o?.whatsappOrders !== false)
       const ri = o?.restaurantInfo || {}
       setInfo({
         phone: ri.phone ?? d.restaurantInfo?.phone ?? '',
@@ -114,7 +116,6 @@ export default function AdminDashboard() {
     edits?: Record<string, DishOverride>
     newDishes?: Dish[]
     panelOrders?: boolean
-    whatsappOrders?: boolean
   }) {
     setBusy(true)
     setMsg('')
@@ -128,7 +129,6 @@ export default function AdminDashboard() {
           banners,
           delivery,
           panelOrders: next?.panelOrders ?? panelOrders,
-          whatsappOrders: next?.whatsappOrders ?? whatsappOrders,
           restaurantInfo: {
             phone: info.phone,
             whatsapp: info.whatsapp,
@@ -302,6 +302,7 @@ export default function AdminDashboard() {
             ['variants', `Variants (${duplicates.length})`],
             ['new', 'Add dish'],
             ['settings', 'Contact'],
+            ['promote', 'Promote'],
             ['banners', 'Banners'],
             ['customers', 'Customers'],
             ['reviews', 'Reviews'],
@@ -352,6 +353,8 @@ export default function AdminDashboard() {
           </p>
         </div>
       )}
+
+      {tab === 'promote' && <PromoteTab adminKey={key} />}
 
       {tab === 'banners' && (
         <BannersTab banners={banners} setBanners={(b: any[]) => { setDirtyOther(true); setBanners(b) }} adminKey={key} />
@@ -501,28 +504,25 @@ export default function AdminDashboard() {
               </span>
             </span>
           </label>
-          <label className="mb-3 flex items-start gap-2 rounded-xl border p-3">
-            <input
-              type="checkbox"
-              checked={whatsappOrders}
-              onChange={e => {
-                const on = e.target.checked
-                setWhatsappOrders(on)
-                save({ whatsappOrders: on } as any)
-              }}
-              className="mt-0.5"
-            />
-            <span className="text-xs">
-              <span className="block text-sm font-medium">Also open WhatsApp at checkout</span>
-              <span className="text-muted-foreground">
-                Leave this on until you trust the panel. If the tab is closed or the
-                internet drops, WhatsApp is what still reaches your phone.
-              </span>
-            </span>
-          </label>
+          <p className="mb-3 rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
+            While this panel is open and signed in, orders come here and WhatsApp stays
+            quiet. Close the tab, sign out or lose connection and checkout falls back to
+            WhatsApp on its own, so nothing is missed.
+          </p>
 
           {panelOrders ? (
-            <OrdersTab adminKey={key} />
+            <OrdersTab
+              orders={watch.orders}
+              today={watch.today}
+              err={watch.err}
+              loaded={watch.loaded}
+              newCount={watch.newCount}
+              armed={watch.alarm.armed}
+              onArm={watch.alarm.arm}
+              onStatus={watch.setStatus}
+              date={orderDate}
+              setDate={setOrderDate}
+            />
           ) : (
             <p className="py-8 text-center text-sm text-muted-foreground">
               Panel orders are off. Orders are going to WhatsApp only.
@@ -1165,6 +1165,8 @@ function CustomersTab({
 }) {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
+  const [stats, setStats] = useState<any>(null)
+  const [q, setQ] = useState('')
 
   async function load() {
     setBusy(true)
@@ -1177,6 +1179,7 @@ function CustomersTab({
       }
       const d = await res.json()
       onLoad(d.customers || [])
+      setStats({ total: d.total, consented: d.consented, repeat: d.repeat })
     } catch {
       setErr('Could not load customers.')
     } finally {
@@ -1187,10 +1190,10 @@ function CustomersTab({
   function exportCsv(onlyConsented: boolean) {
     const rows = (list || []).filter(c => !onlyConsented || c.marketingConsent)
     const csv = [
-      'phone,name,orders,last_order,marketing_consent',
+      'phone,name,orders,spent,last_order,marketing_consent',
       ...rows.map(c =>
-        [c.phone, JSON.stringify(c.name || ''), c.orderCount, c.lastOrderAt, c.marketingConsent]
-          .join(',')
+        [c.phone, JSON.stringify(c.name || ''), c.orderCount, c.spent,
+         (c.lastOrderAt || '').slice(0, 10), c.marketingConsent].join(',')
       ),
     ].join('\n')
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
@@ -1201,14 +1204,29 @@ function CustomersTab({
     URL.revokeObjectURL(url)
   }
 
-  const consented = (list || []).filter(c => c.marketingConsent).length
+  const shown = (list || []).filter(
+    c => !q || c.phone.includes(q) || (c.name || '').toLowerCase().includes(q.toLowerCase())
+  )
+
+  const tier = (c: any) =>
+    c.orderCount >= 10 ? 'Regular' : c.orderCount >= 4 ? 'Returning' : c.orderCount >= 2 ? 'Repeat' : 'New'
+  const tierTone = (t: string) =>
+    t === 'Regular' ? 'bg-amber-100 text-amber-800'
+      : t === 'Returning' ? 'bg-green-100 text-green-700'
+      : t === 'Repeat' ? 'bg-blue-100 text-blue-700'
+      : 'bg-muted text-muted-foreground'
+
+  const daysAgo = (d: string) => {
+    if (!d) return ''
+    const n = Math.floor((Date.now() - new Date(d).getTime()) / 864e5)
+    return n === 0 ? 'today' : n === 1 ? 'yesterday' : n + ' days ago'
+  }
 
   return (
     <div className="space-y-3">
       <p className="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
-        Every order saves the customer&apos;s number so they do not retype it and you can
-        see repeat buyers. Only tick-the-box customers count as marketing contacts &mdash;
-        send promotions to that list only.
+        Sorted by spend, so your best customers are at the top. Only tick-the-box
+        customers count as marketing contacts.
       </p>
 
       {!list && (
@@ -1224,44 +1242,70 @@ function CustomersTab({
 
       {list && (
         <>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <div className="rounded-xl border p-3">
-              <p className="text-2xl font-bold">{list.length}</p>
+              <p className="text-2xl font-bold">{stats?.total ?? list.length}</p>
               <p className="text-xs text-muted-foreground">Customers</p>
             </div>
             <div className="rounded-xl border p-3">
-              <p className="text-2xl font-bold text-green-600">{consented}</p>
-              <p className="text-xs text-muted-foreground">Opted in to marketing</p>
+              <p className="text-2xl font-bold text-amber-600">{stats?.repeat ?? 0}</p>
+              <p className="text-xs text-muted-foreground">Ordered again</p>
+            </div>
+            <div className="rounded-xl border p-3">
+              <p className="text-2xl font-bold text-green-600">{stats?.consented ?? 0}</p>
+              <p className="text-xs text-muted-foreground">Opted in</p>
             </div>
           </div>
 
           <div className="flex gap-2">
-            <button onClick={() => exportCsv(true)} className="flex-1 rounded-xl border p-2.5 text-sm">
-              Export marketing list
+            <input
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              placeholder="Search name or number"
+              className="flex-1 rounded-xl border bg-background p-2.5 text-sm"
+            />
+            <button onClick={() => exportCsv(true)} className="rounded-xl border px-3 text-xs">
+              Marketing CSV
             </button>
-            <button onClick={() => exportCsv(false)} className="flex-1 rounded-xl border p-2.5 text-sm">
-              Export all
+            <button onClick={() => exportCsv(false)} className="rounded-xl border px-3 text-xs">
+              All CSV
             </button>
           </div>
 
           <div className="divide-y rounded-xl border">
-            {list.map(c => (
-              <div key={c.phone} className="flex items-center justify-between gap-3 p-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{c.name || 'No name'}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {c.phone} &middot; {c.orderCount} order{c.orderCount > 1 ? 's' : ''}
+            {shown.map(c => {
+              const t = tier(c)
+              return (
+                <div key={c.phone} className="p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{c.name || 'No name'}</p>
+                      <a href={'tel:' + c.phone} className="text-xs text-primary">
+                        {c.phone}
+                      </a>
+                      {c.address && (
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">{c.address}</p>
+                      )}
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-sm font-bold">Rs.{c.spent}</p>
+                      <span className={'rounded-full px-2 py-0.5 text-[10px] font-semibold ' + tierTone(t)}>
+                        {t}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {c.orderCount} order{c.orderCount === 1 ? '' : 's'}
+                    {c.spent > 0 && c.orderCount > 0 &&
+                      ' · avg Rs.' + Math.round(c.spent / c.orderCount)}
+                    {c.lastOrderAt && ' · last ' + daysAgo(c.lastOrderAt)}
+                    {c.marketingConsent && ' · opted in'}
                   </p>
                 </div>
-                {c.marketingConsent && (
-                  <span className="shrink-0 rounded-full bg-green-100 px-2 py-1 text-[10px] font-semibold text-green-700">
-                    opted in
-                  </span>
-                )}
-              </div>
-            ))}
-            {!list.length && (
-              <p className="p-6 text-center text-sm text-muted-foreground">No customers yet.</p>
+              )
+            })}
+            {!shown.length && (
+              <p className="p-6 text-center text-sm text-muted-foreground">No customers match.</p>
             )}
           </div>
         </>
@@ -1269,6 +1313,7 @@ function CustomersTab({
     </div>
   )
 }
+
 // ------------------------------------------------------------------ banners
 function BannersTab({
   banners,

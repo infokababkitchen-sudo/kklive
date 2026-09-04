@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/** Staff only. */
+/** Staff only. Customers with their real order history, best spender first. */
 export async function GET(request: NextRequest) {
   if (!(await requireStaff(request))) {
     return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
@@ -42,9 +42,24 @@ export async function GET(request: NextRequest) {
 
   const sql = db()
   const rows = (await sql`
-    SELECT phone, name, address, marketing_consent, order_count,
-           first_order_at, last_order_at
-    FROM customers ORDER BY last_order_at DESC LIMIT 1000
+    SELECT c.phone, c.name, c.address, c.marketing_consent,
+           c.first_order_at, c.last_order_at,
+           count(o.id) FILTER (WHERE o.status <> 'cancelled')::int      AS orders,
+           coalesce(sum(o.total) FILTER (WHERE o.status <> 'cancelled'), 0)::int AS spent,
+           max(o.created_at) AS last_seen
+    FROM customers c
+    LEFT JOIN orders o ON o.phone = c.phone
+    GROUP BY c.phone, c.name, c.address, c.marketing_consent,
+             c.first_order_at, c.last_order_at
+    ORDER BY spent DESC, c.last_order_at DESC
+    LIMIT 500
+  `) as any[]
+
+  const totals = (await sql`
+    SELECT count(*)::int AS total,
+           count(*) FILTER (WHERE marketing_consent)::int AS consented,
+           count(*) FILTER (WHERE order_count > 1)::int   AS repeat
+    FROM customers
   `) as any[]
 
   return NextResponse.json({
@@ -53,11 +68,13 @@ export async function GET(request: NextRequest) {
       name: r.name,
       address: r.address,
       marketingConsent: r.marketing_consent,
-      orderCount: r.order_count,
+      orderCount: r.orders,
+      spent: r.spent,
       firstOrderAt: r.first_order_at,
-      lastOrderAt: r.last_order_at,
+      lastOrderAt: r.last_seen || r.last_order_at,
     })),
-    total: rows.length,
-    consented: rows.filter(r => r.marketing_consent).length,
+    total: totals[0].total,
+    consented: totals[0].consented,
+    repeat: totals[0].repeat,
   })
 }

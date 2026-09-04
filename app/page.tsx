@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Header } from '@/components/header'
+import { AnnouncementBar } from '@/components/announcement-bar'
 import { BottomNav } from '@/components/bottom-nav'
 import { CategoryTabs } from '@/components/category-tabs'
 import { FilterChips, FilterType } from '@/components/filter-chips'
@@ -113,6 +114,7 @@ export default function MenuPage() {
   return (
     <div className="min-h-screen bg-background pb-20">
       <Header />
+      <AnnouncementBar />
       
       {/* Selected dishes strip above the bottom nav */}
       {items.length > 0 && (
