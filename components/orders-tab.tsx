@@ -46,17 +46,22 @@ const NEXT_LABEL: Record<string, string> = {
   delivered: 'Mark delivered',
 }
 
-/** Two-tone beep built in code, so no audio file has to ship. */
+/**
+ * Loud repeating alarm: a siren built in code plus a spoken announcement.
+ *
+ * The siren is one long looping AudioBuffer rather than a timer, because
+ * browsers throttle timers in background tabs but keep audio playing.
+ */
 function useAlarm() {
   const ctxRef = useRef<AudioContext | null>(null)
-  const timerRef = useRef<number | null>(null)
+  const nodeRef = useRef<AudioBufferSourceNode | null>(null)
+  const speakRef = useRef<number | null>(null)
   const [armed, setArmed] = useState(false)
 
   const arm = useCallback(() => {
     try {
-      const Ctx =
-        (window as any).AudioContext || (window as any).webkitAudioContext
-      ctxRef.current = new Ctx()
+      const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext
+      if (!ctxRef.current) ctxRef.current = new Ctx()
       ctxRef.current!.resume()
       setArmed(true)
     } catch {
@@ -64,36 +69,98 @@ function useAlarm() {
     }
   }, [])
 
-  const beep = useCallback(() => {
-    const ctx = ctxRef.current
-    if (!ctx) return
-    const now = ctx.currentTime
-    ;[0, 0.28].forEach((offset, i) => {
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.type = 'sine'
-      osc.frequency.value = i === 0 ? 880 : 660
-      gain.gain.setValueAtTime(0.0001, now + offset)
-      gain.gain.exponentialRampToValueAtTime(0.35, now + offset + 0.02)
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.22)
-      osc.connect(gain).connect(ctx.destination)
-      osc.start(now + offset)
-      osc.stop(now + offset + 0.24)
-    })
+  /** One 3.2s cycle: rising-falling siren twice, then a gap for the voice. */
+  const buildCycle = (ctx: AudioContext) => {
+    const rate = ctx.sampleRate
+    const seconds = 3.2
+    const buf = ctx.createBuffer(1, Math.floor(rate * seconds), rate)
+    const d = buf.getChannelData(0)
+    let phase = 0
+
+    for (let i = 0; i < d.length; i++) {
+      const t = i / rate
+      let sample = 0
+
+      // two siren sweeps in the first 1.6s, silence after that
+      if (t < 1.6) {
+        const cycle = t % 0.8
+        const f = 620 + 680 * Math.sin((cycle / 0.8) * Math.PI)
+        phase += (2 * Math.PI * f) / rate
+        // square-ish tone carries much further than a pure sine
+        const square = Math.sign(Math.sin(phase))
+        const sine = Math.sin(phase)
+        sample = 0.55 * square + 0.45 * sine
+
+        // short fades so it does not click
+        const env =
+          Math.min(1, (cycle < 0.4 ? cycle : 0.8 - cycle) / 0.04) * 0.9
+        sample *= Math.max(0, env)
+      }
+      d[i] = sample
+    }
+    return buf
+  }
+
+  const speak = useCallback(() => {
+    try {
+      const s = window.speechSynthesis
+      if (!s) return
+      s.cancel()
+      const u = new SpeechSynthesisUtterance('New order. New order at Kabab Kitchen.')
+      u.rate = 1.05
+      u.pitch = 1.1
+      u.volume = 1
+      s.speak(u)
+    } catch {
+      /* voice is a bonus; the siren still plays */
+    }
   }, [])
 
   const start = useCallback(() => {
-    if (timerRef.current) return
-    beep()
-    timerRef.current = window.setInterval(beep, 3000)
-  }, [beep])
+    const ctx = ctxRef.current
+    if (!ctx || nodeRef.current) return
+
+    const src = ctx.createBufferSource()
+    src.buffer = buildCycle(ctx)
+    src.loop = true
+
+    // compressor then a boosted gain: loud without the clipping buzz
+    const comp = ctx.createDynamicsCompressor()
+    comp.threshold.value = -18
+    comp.ratio.value = 12
+    const gain = ctx.createGain()
+    gain.gain.value = 2.4
+
+    src.connect(comp).connect(gain).connect(ctx.destination)
+    src.start()
+    nodeRef.current = src
+
+    speak()
+    speakRef.current = window.setInterval(speak, 3200)
+  }, [speak])
 
   const stop = useCallback(() => {
-    if (timerRef.current) {
-      window.clearInterval(timerRef.current)
-      timerRef.current = null
+    try {
+      nodeRef.current?.stop()
+    } catch {
+      /* already stopped */
+    }
+    nodeRef.current = null
+    if (speakRef.current) {
+      window.clearInterval(speakRef.current)
+      speakRef.current = null
+    }
+    try {
+      window.speechSynthesis?.cancel()
+    } catch {
+      /* ignore */
     }
   }, [])
+
+  const test = useCallback(() => {
+    start()
+    window.setTimeout(stop, 3400)
+  }, [start, stop])
 
   // Any click counts as the gesture browsers require, so the alarm works even
   // if nobody notices the banner.
@@ -105,7 +172,7 @@ function useAlarm() {
   }, [armed, arm])
 
   useEffect(() => () => stop(), [stop])
-  return { armed, arm, start, stop, test: beep }
+  return { armed, arm, start, stop, test }
 }
 
 export function OrdersTab({ adminKey }: { adminKey: string }) {
@@ -203,7 +270,7 @@ export function OrdersTab({ adminKey }: { adminKey: string }) {
       {alarm.armed ? (
         <div className="flex items-center justify-between gap-3 rounded-xl border border-green-300 bg-green-50 p-3">
           <p className="text-sm font-medium text-green-800">
-            Alarm is on. It rings until you accept a new order.
+            Alarm is on. Siren plus a spoken alert, repeating until you accept or reject.
           </p>
           <button
             onClick={() => {
