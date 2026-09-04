@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from 'react'
+import { LogOut } from 'lucide-react'
 import type { Dish, Category } from '@/types/menu'
 import type { DishOverride, MenuOverrides, Variant, VariantKey, DishMedia } from '@/lib/menu-overrides'
 import { mediaTypeOf } from '@/lib/menu-overrides'
@@ -286,11 +287,30 @@ export default function AdminDashboard() {
   return (
     <main className="mx-auto min-h-screen max-w-3xl p-4 pb-28">
       <div className="mb-3">
-        <p className="text-sm font-semibold text-primary">Kabab Kitchen</p>
-        <h1 className="text-2xl font-bold">Admin dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          {allDishes.length} dishes{changed > 0 ? ' · ' + changed + ' edited' : ''}
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-primary">Kabab Kitchen</p>
+            <h1 className="text-2xl font-bold">Admin dashboard</h1>
+            <p className="text-sm text-muted-foreground">
+              {allDishes.length} dishes{changed > 0 ? ' · ' + changed + ' edited' : ''}
+            </p>
+          </div>
+          <button
+            onClick={async () => {
+              if (dirty && !confirm('You have unsaved changes. Sign out anyway?')) return
+              try {
+                await fetch('/api/auth/logout', { method: 'POST' })
+              } catch {
+                /* the cookie is cleared either way */
+              }
+              window.location.reload()
+            }}
+            className="flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-medium hover:bg-muted"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign out
+          </button>
+        </div>
       </div>
 
       <div className="mb-4 flex gap-1 border-b">

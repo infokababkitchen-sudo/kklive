@@ -63,6 +63,9 @@ export default function CartPage() {
   const [showReview, setShowReview] = useState(false)
   const [placed, setPlaced] = useState<string | null>(null)
   const [prefilled, setPrefilled] = useState(false)
+  // Checked up front, because window.open only works inside the click itself.
+  const [panelLive, setPanelLive] = useState(false)
+  const [waLink, setWaLink] = useState<string | null>(null)
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails>({
     name: '',
     phone: '',
@@ -159,6 +162,26 @@ export default function CartPage() {
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
+
+  // Keep the kitchen's status fresh so the decision at checkout is instant.
+  useEffect(() => {
+    if (!liveMenu.panelOrders) return setPanelLive(false)
+    let stop = false
+    const check = () =>
+      fetch('/api/panel/status', { cache: 'no-store' })
+        .then(r => r.json())
+        .then(d => {
+          if (!stop) setPanelLive(Boolean(d?.live))
+        })
+        // if we cannot tell, assume the kitchen is not watching
+        .catch(() => !stop && setPanelLive(false))
+    check()
+    const t = setInterval(check, 20000)
+    return () => {
+      stop = true
+      clearInterval(t)
+    }
+  }, [liveMenu.panelOrders])
 
   // A returning customer should not retype their address.
   useEffect(() => {
@@ -290,20 +313,16 @@ export default function CartPage() {
     // WhatsApp is the fallback, not a duplicate. If the kitchen panel is open
     // and answering, the order is already in front of them. If it is closed,
     // logged out or offline, WhatsApp still reaches the phone.
-    const openWhatsApp = () => {
-      const url = `https://wa.me/${liveMenu.restaurantInfo.whatsapp}?text=${encodeURIComponent(message)}`
-      window.open(url, '_blank')
-    }
+    const url = `https://wa.me/${liveMenu.restaurantInfo.whatsapp}?text=${encodeURIComponent(message)}`
 
-    if (liveMenu.panelOrders) {
-      fetch('/api/panel/status', { cache: 'no-store' })
-        .then(r => r.json())
-        .then(d => {
-          if (!d?.live) openWhatsApp()
-        })
-        .catch(openWhatsApp)
-    } else {
-      openWhatsApp()
+    // Only skip WhatsApp when we already know the kitchen panel is watching.
+    // Anything else - panel off, signed out, offline, unknown - sends it.
+    if (!(liveMenu.panelOrders && panelLive)) {
+      // Must run inside the click. A popup opened from a promise is blocked,
+      // silently, and on iOS Safari always.
+      const win = window.open(url, '_blank')
+      // Blocked anyway? Keep the link so the customer can tap it themselves.
+      if (!win || win.closed) setWaLink(url)
     }
   }
 
@@ -375,9 +394,25 @@ export default function CartPage() {
               Your order <span className="font-semibold text-foreground">{placed}</span> is
               with the kitchen. Track it from the bar at the bottom of the screen.
             </p>
+            {waLink && (
+              <a
+                href={waLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setWaLink(null)}
+                className="mt-4 block w-full rounded-xl bg-green-600 p-3 font-semibold text-white"
+              >
+                Send order on WhatsApp
+              </a>
+            )}
             <button
               onClick={() => setPlaced(null)}
-              className="mt-5 w-full rounded-xl bg-primary p-3 font-semibold text-primary-foreground"
+              className={
+                'w-full rounded-xl p-3 font-semibold ' +
+                (waLink
+                  ? 'mt-2 border text-foreground'
+                  : 'mt-5 bg-primary text-primary-foreground')
+              }
             >
               Done
             </button>
@@ -984,9 +1019,25 @@ export default function CartPage() {
               Your order <span className="font-semibold text-foreground">{placed}</span> is
               with the kitchen. Track it from the bar at the bottom of the screen.
             </p>
+            {waLink && (
+              <a
+                href={waLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setWaLink(null)}
+                className="mt-4 block w-full rounded-xl bg-green-600 p-3 font-semibold text-white"
+              >
+                Send order on WhatsApp
+              </a>
+            )}
             <button
               onClick={() => setPlaced(null)}
-              className="mt-5 w-full rounded-xl bg-primary p-3 font-semibold text-primary-foreground"
+              className={
+                'w-full rounded-xl p-3 font-semibold ' +
+                (waLink
+                  ? 'mt-2 border text-foreground'
+                  : 'mt-5 bg-primary text-primary-foreground')
+              }
             >
               Done
             </button>
